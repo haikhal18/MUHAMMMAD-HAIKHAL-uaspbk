@@ -1,0 +1,76 @@
+{
+    "users": [
+      {
+        "id": "1",
+        "username": "client_alpha",
+        "email": "alpha.corp@stealthops.com",
+        "password": "password123",
+        "role": "client",
+        "company": "Alpha Cyber Corp"
+      },
+      {
+        "id": "2",
+        "username": "ninja_shadow",
+        "email": "shadow.strike@stealthops.com",
+        "password": "password123",
+        "role": "ninja",
+        "skills": ["Penetration Testing", "Digital Forensics"],
+        "rating": 4.8
+      },
+      {
+        "id": "3",
+        "username": "client_beta",
+        "email": "beta.labs@stealthops.com",
+        "password": "password123",
+        "role": "client",
+        "company": "Beta Research Labs"
+      },
+      {
+        "id": "4",
+        "username": "ninja_ghost",
+        "email": "ghost.recon@stealthops.com",
+        "password": "123456",
+        "role": "ninja",
+        "skills": ["Cryptography", "Malware Analysis"],
+        "rating": 4.5
+      }
+    ],
+    "missions": [
+      {
+        "id": "101",
+        "clientId": "1",
+        "title": "Audit Keamanan Jaringan",
+        "description": "Diperlukan audit keamanan untuk infrastruktur jaringan.",
+        "bounty": 7500,
+        "deadline": "2025-08-30",
+        "requiredSkills": ["Network Security"],
+        "status": "available",
+        "applicants": ["2", "4"],
+        "assignedNinjaId": null
+      },
+      {
+        "id": "102",
+        "clientId": "1",
+        "title": "Pemulihan Data Terenkripsi",
+        "description": "Memulihkan data krusial dari hard drive yang rusak.",
+        "bounty": 5000,
+        "deadline": "2025-07-25",
+        "requiredSkills": ["Digital Forensics", "Cryptography"],
+        "status": "assigned",
+        "applicants": ["2", "4"],
+        "assignedNinjaId": "2"
+      },
+      {
+        "id": "103",
+        "clientId": "3",
+        "title": "Analisis OSINT Kompetitor",
+        "description": "Mengumpulkan intelijen dari sumber terbuka terkait kampanye kompetitor.",
+        "bounty": 1800,
+        "deadline": "2025-07-10",
+        "requiredSkills": ["OSINT"],
+        "status": "completed",
+        "applicants": ["4"],
+        "assignedNinjaId": "4"
+      }
+    ]
+  }

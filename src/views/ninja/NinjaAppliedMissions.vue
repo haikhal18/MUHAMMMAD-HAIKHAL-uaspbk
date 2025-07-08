@@ -1,122 +1,137 @@
 <template>
-    <div class="ninja-applied-missions-page">
-      <section class="page-hero">
-        <h1 class="page-title">Misi yang Dilamar</h1>
-        <p class="page-subtitle">Pantau status aplikasi misi Anda.</p>
-      </section>
-  
-      <section class="mission-list-section">
-        <LoadingSpinner v-if="missionStore.loading" text="Memuat misi yang dilamar..." />
-        <AlertMessage
-          v-if="missionStore.error && !missionStore.loading"
-          v-model:isVisible="showErrorAlert"
-          type="error"
-          :message="missionStore.error"
-          :dismissible="true"
-          @dismissed="missionStore.error = null"
-        />
-  
-        <div v-if="!missionStore.loading && appliedMissions.length" class="mission-grid">
-          <MissionCard
-            v-for="mission in appliedMissions"
-            :key="mission.id"
-            :mission="mission"
-          >
-            <template #actions>
-              <BaseButton
-                variant="outline"
-                text="Menunggu Respon Klien"
-                :disabled="true"
-              />
-              <BaseButton
-                variant="secondary"
-                text="Lihat Detail Lamaran"
-                @click="viewMissionDetail(mission.id)"
-              />
-            </template>
-          </MissionCard>
-        </div>
-        <div v-else-if="!missionStore.loading" class="no-missions">
-          <p>Anda belum melamar misi apapun.</p>
-          <p>Jelajahi <router-link to="/ninja/missions/available" class="highlight-link">Misi Tersedia</router-link> untuk menemukan peluang!</p>
-        </div>
-      </section>
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, computed, onMounted, watch } from 'vue';
-  import { useRouter } from 'vue-router';
-  import { useAuthStore } from '@/stores/auth';
-  import { useMissionStore } from '@/stores/mission';
-  import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
-  import AlertMessage from '@/components/common/AlertMessage.vue';
-  import MissionCard from '@/components/ui/MissionCard.vue';
-  import BaseButton from '@/components/common/BaseButton.vue';
-  import { nextTick } from 'vue';
-  
-  const authStore = useAuthStore();
-  const missionStore = useMissionStore();
-  const router = useRouter();
-  
-  const showErrorAlert = ref(false);
-  
-  // Computed property untuk misi yang telah dilamar oleh ninja yang sedang login
-  const appliedMissions = computed(() => {
-    if (!authStore.user?.id) return [];
-    return missionStore.missions.filter(mission =>
-      mission.applicants.includes(authStore.user.id) && mission.status === 'available'
-      // Status 'available' penting, karena jika sudah 'assigned' atau 'completed',
-      // harusnya muncul di halaman lain (Misi Aktif atau Misi Selesai)
-    ).sort((a, b) => b.id - a.id); // Urutkan dari terbaru
-  });
-  
-  // Watcher untuk error dari missionStore
-  watch(() => missionStore.error, (newError) => {
-    if (newError) {
-      showErrorAlert.value = true;
-      nextTick(() => {
-        setTimeout(() => showErrorAlert.value = false, 5000);
-      });
-    } else {
-      showErrorAlert.value = false;
-    }
-  });
-  
-  onMounted(() => {
-    // Hanya fetch misi jika user adalah ninja dan sudah login
-    if (authStore.isNinja && authStore.user?.id) {
-      missionStore.fetchAllMissions(); // Ambil semua misi, nanti difilter di computed property
-    } else {
-      router.push('/login'); // Redirect jika tidak berhak
-    }
-  });
-  
-  // Fungsi untuk melihat detail misi yang dilamar
-  const viewMissionDetail = (missionId) => {
-    router.push(`/ninja/missions/${missionId}`);
-  };
-  
-  // Opsional: Fungsi untuk menarik lamaran
-  // const withdrawApplication = async (missionId) => {
-  //   if (confirm('Anda yakin ingin menarik lamaran misi ini?')) {
-  //     // Logika untuk menghapus ID ninja dari array pelamar di misi tersebut
-  //     // Ini memerlukan aksi updateMission di missionStore
-  //     try {
-  //       const mission = missionStore.missions.find(m => m.id === missionId);
-  //       if (mission) {
-  //         const updatedApplicants = mission.applicants.filter(id => id !== authStore.user.id);
-  //         await missionStore.updateMission(missionId, { applicants: updatedApplicants });
-  //         alert('Lamaran berhasil ditarik.');
-  //         missionStore.fetchAllMissions(); // Refresh daftar misi
-  //       }
-  //     } catch (error) {
-  //       console.error('Error withdrawing application:', error);
-  //       alert('Gagal menarik lamaran. Coba lagi.');
-  //     }
-  //   }
-  // };
-  </script>
+  <div class="ninja-applied-missions-page">
+    <section class="page-hero">
+      <h1 class="page-title">Misi yang Dilamar</h1>
+      <p class="page-subtitle">Pantau status aplikasi misi Anda.</p>
+    </section>
+
+    <section class="mission-list-section">
+      <LoadingSpinner v-if="missionStore.loading" text="Memuat misi yang dilamar..." />
+      <AlertMessage
+        v-if="missionStore.error && !missionStore.loading"
+        v-model:isVisible="showErrorAlert"
+        type="error"
+        :message="missionStore.error"
+        :dismissible="true"
+        @dismissed="missionStore.error = null"
+      />
+
+      <div v-if="!missionStore.loading && appliedMissions.length" class="mission-grid">
+        <MissionCard
+          v-for="mission in appliedMissions"
+          :key="String(mission.id)"
+          :mission="mission"
+        >
+          <template #actions>
+            <BaseButton
+              variant="outline"
+              text="Menunggu Respon Klien"
+              :disabled="true"
+            />
+            <BaseButton
+              variant="secondary"
+              text="Lihat Detail Lamaran"
+              @click="viewMissionDetail(String(mission.id))"
+            />
+          </template>
+        </MissionCard>
+      </div>
+
+      <div v-else-if="!missionStore.loading" class="no-missions">
+        <p>Anda belum melamar misi apapun.</p>
+        <p>Jelajahi
+          <router-link to="/ninja/missions/available" class="highlight-link">
+            Misi Tersedia
+          </router-link>
+          untuk menemukan peluang!
+        </p>
+      </div>
+    </section>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useMissionStore } from '@/stores/mission';
+import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
+import AlertMessage from '@/components/common/AlertMessage.vue';
+import MissionCard from '@/components/ui/MissionCard.vue';
+import BaseButton from '@/components/common/BaseButton.vue';
+
+const authStore = useAuthStore();
+const missionStore = useMissionStore();
+const router = useRouter();
+
+const showErrorAlert = ref(false);
+
+// ✅ Kompatibel dengan ID seperti "MID-123"
+const appliedMissions = computed(() => {
+  if (!authStore.user?.id) return [];
+  const userIdStr = String(authStore.user.id);
+
+  return missionStore.missions
+    .filter(mission =>
+      Array.isArray(mission.applicants) &&
+      mission.applicants.map(String).includes(userIdStr) &&
+      mission.status === 'available'
+    )
+    .sort((a, b) => String(b.id).localeCompare(String(a.id)));
+});
+
+// Tangani error dari missionStore
+watch(() => missionStore.error, (newError) => {
+  if (newError) {
+    showErrorAlert.value = true;
+    nextTick(() => {
+      setTimeout(() => (showErrorAlert.value = false), 5000);
+    });
+  } else {
+    showErrorAlert.value = false;
+  }
+});
+
+// Ambil semua misi saat halaman dimuat
+onMounted(() => {
+  if (authStore.isNinja && authStore.user?.id) {
+    missionStore.fetchAllMissions();
+  } else {
+    router.push('/login');
+  }
+});
+
+// Navigasi ke detail misi
+const viewMissionDetail = (missionId) => {
+  router.push(`/ninja/missions/${String(missionId)}`);
+};
+</script>
+
+<style scoped>
+.page-hero {
+  margin-bottom: 1rem;
+}
+.page-title {
+  font-size: 2rem;
+  font-weight: bold;
+}
+.page-subtitle {
+  color: #666;
+  margin-bottom: 1rem;
+}
+.mission-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 1rem;
+}
+.no-missions {
+  text-align: center;
+  padding: 2rem;
+  color: #888;
+}
+</style>
+
+
   
   <style scoped>
   /* Scoped styles untuk NinjaAppliedMissions.vue */

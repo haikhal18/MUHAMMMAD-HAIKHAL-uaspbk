@@ -82,157 +82,146 @@
   </template>
   
   <script setup>
-  import { ref, computed, onMounted, watch } from 'vue';
-  import { useRouter } from 'vue-router';
-  import { useAuthStore } from '@/stores/auth';
-  import { useMissionStore } from '@/stores/mission';
-  import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
-  import AlertMessage from '@/components/common/AlertMessage.vue';
-  import MissionCard from '@/components/ui/MissionCard.vue';
-  import BaseButton from '@/components/common/BaseButton.vue';
-  import BaseInput from '@/components/common/BaseInput.vue';
-  import ModalDialog from '@/components/ui/ModalDialog.vue';
-  import { nextTick } from 'vue';
-  
-  const authStore = useAuthStore();
-  const missionStore = useMissionStore();
-  const router = useRouter();
-  
-  const showErrorAlert = ref(false);
-  const filterSkill = ref('all'); // State untuk filter keahlian
-  const searchQuery = ref(''); // State untuk pencarian
-  let searchTimeout = null; // Untuk debounce pencarian
-  
-  // State untuk modal konfirmasi lamar misi
-  const showApplyConfirmModal = ref(false);
-  const missionToApply = ref({ id: null, title: '' });
-  const isApplying = ref({}); // Objek untuk melacak status loading per misi
-  
-  // Opsi keahlian untuk dropdown filter (akan diisi secara dinamis)
-  const skillOptions = ref([{ value: 'all', label: 'Semua Keahlian' }]);
-  
-  // Computed property untuk misi yang tersedia (dari getter store)
-  const availableMissionsFromStore = computed(() => missionStore.availableMissions);
-  
-  // Computed property untuk memfilter misi yang tersedia berdasarkan keahlian dan pencarian
-  const filteredAvailableMissions = computed(() => {
-    let missions = availableMissionsFromStore.value;
-  
-    // Filter berdasarkan keahlian
-    if (filterSkill.value !== 'all') {
-      missions = missions.filter(mission =>
-        mission.requiredSkills.includes(filterSkill.value)
-      );
-    }
-  
-    // Filter berdasarkan pencarian (judul, deskripsi, atau keahlian)
-    if (searchQuery.value.trim()) {
-      const query = searchQuery.value.trim().toLowerCase();
-      missions = missions.filter(
-        mission =>
-          mission.title.toLowerCase().includes(query) ||
-          mission.description.toLowerCase().includes(query) ||
-          mission.requiredSkills.some(skill => skill.toLowerCase().includes(query))
-      );
-    }
-  
-    // Urutkan misi (misal, yang terbaru di atas)
-    return missions.sort((a, b) => b.id - a.id);
-  });
-  
-  // Mengecek apakah ninja saat ini sudah melamar misi tertentu
-  const hasApplied = (missionId) => {
-    const mission = missionStore.missions.find(m => m.id === missionId);
-    return mission && mission.applicants.includes(authStore.user?.id);
-  };
-  
-  // Watcher untuk error dari missionStore
-  watch(() => missionStore.error, (newError) => {
-    if (newError) {
-      showErrorAlert.value = true;
-      nextTick(() => {
-        setTimeout(() => showErrorAlert.value = false, 5000);
-      });
-    } else {
-      showErrorAlert.value = false;
-    }
-  });
-  
-  // Watcher untuk misi di store untuk mengisi skillOptions secara dinamis
-  watch(availableMissionsFromStore, (newMissions) => {
-    const allSkills = new Set();
-    newMissions.forEach(mission => {
-      mission.requiredSkills.forEach(skill => allSkills.add(skill));
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useMissionStore } from '@/stores/mission';
+import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
+import AlertMessage from '@/components/common/AlertMessage.vue';
+import MissionCard from '@/components/ui/MissionCard.vue';
+import BaseButton from '@/components/common/BaseButton.vue';
+import BaseInput from '@/components/common/BaseInput.vue';
+import ModalDialog from '@/components/ui/ModalDialog.vue';
+
+const authStore = useAuthStore();
+const missionStore = useMissionStore();
+const router = useRouter();
+
+const showErrorAlert = ref(false);
+const filterSkill = ref('all');
+const searchQuery = ref('');
+let searchTimeout = null;
+
+const showApplyConfirmModal = ref(false);
+const missionToApply = ref({ id: null, title: '' });
+const isApplying = ref({});
+
+const skillOptions = ref([{ value: 'all', label: 'Semua Keahlian' }]);
+
+const availableMissionsFromStore = computed(() => missionStore.availableMissions);
+
+// ✅ Sort dengan mengurai angka dari ID MID-123
+function extractNumberFromId(id) {
+  const match = String(id).match(/\d+/);
+  return match ? parseInt(match[0]) : 0;
+}
+
+const filteredAvailableMissions = computed(() => {
+  let missions = availableMissionsFromStore.value;
+
+  if (filterSkill.value !== 'all') {
+    missions = missions.filter(mission =>
+      mission.requiredSkills.includes(filterSkill.value)
+    );
+  }
+
+  if (searchQuery.value.trim()) {
+    const query = searchQuery.value.trim().toLowerCase();
+    missions = missions.filter(
+      mission =>
+        mission.title.toLowerCase().includes(query) ||
+        mission.description.toLowerCase().includes(query) ||
+        mission.requiredSkills.some(skill => skill.toLowerCase().includes(query))
+    );
+  }
+
+  return missions.sort((a, b) =>
+    extractNumberFromId(b.id) - extractNumberFromId(a.id)
+  );
+});
+
+// ✅ Periksa apakah user sudah melamar
+const hasApplied = (missionId) => {
+  const mission = missionStore.missions.find(m => String(m.id) === String(missionId));
+  return mission && mission.applicants.map(String).includes(String(authStore.user?.id));
+};
+
+watch(() => missionStore.error, (newError) => {
+  if (newError) {
+    showErrorAlert.value = true;
+    nextTick(() => {
+      setTimeout(() => showErrorAlert.value = false, 5000);
     });
-    skillOptions.value = [
-      { value: 'all', label: 'Semua Keahlian' },
-      ...Array.from(allSkills).sort().map(skill => ({ value: skill, label: skill }))
-    ];
-  }, { immediate: true }); // Jalankan segera saat komponen dimuat
-  
-  
-  onMounted(() => {
-    // Hanya fetch misi jika user adalah ninja dan sudah login
-    if (authStore.isNinja && authStore.user?.id) {
-      missionStore.fetchAllMissions(); // Ambil semua misi (nanti difilter oleh getter `availableMissions`)
-    } else {
-      router.push('/login'); // Redirect jika tidak berhak
-    }
+  } else {
+    showErrorAlert.value = false;
+  }
+});
+
+watch(availableMissionsFromStore, (newMissions) => {
+  const allSkills = new Set();
+  newMissions.forEach(mission => {
+    mission.requiredSkills.forEach(skill => allSkills.add(skill));
   });
-  
-  // Fungsi yang dipanggil saat filter keahlian berubah
-  const applyFilters = () => {
-    // `filteredAvailableMissions` computed property akan otomatis re-evaluate
-    console.log('Applying skill filter:', filterSkill.value);
-  };
-  
-  // Fungsi debounce untuk pencarian
-  const debounceSearch = () => {
-    if (searchTimeout) {
-      clearTimeout(searchTimeout);
+  skillOptions.value = [
+    { value: 'all', label: 'Semua Keahlian' },
+    ...Array.from(allSkills).sort().map(skill => ({ value: skill, label: skill }))
+  ];
+}, { immediate: true });
+
+onMounted(() => {
+  if (authStore.isNinja && authStore.user?.id) {
+    missionStore.fetchAllMissions();
+  } else {
+    router.push('/login');
+  }
+});
+
+const applyFilters = () => {
+  console.log('Applying skill filter:', filterSkill.value);
+};
+
+const debounceSearch = () => {
+  if (searchTimeout) clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => {
+    console.log('Searching for:', searchQuery.value);
+  }, 300);
+};
+
+// ✅ Konfirmasi lamaran
+const confirmApply = (id, title) => {
+  missionToApply.value = { id: String(id), title };
+  showApplyConfirmModal.value = true;
+};
+
+// ✅ Batal lamaran
+const cancelApply = () => {
+  showApplyConfirmModal.value = false;
+  missionToApply.value = { id: null, title: '' };
+};
+
+// ✅ Eksekusi lamaran
+const executeApply = async () => {
+  const missionId = String(missionToApply.value.id);
+  const userId = String(authStore.user.id);
+  isApplying.value[missionId] = true;
+
+  try {
+    const success = await missionStore.applyForMission(missionId, userId);
+    if (success) {
+      alert(`Berhasil melamar misi "${missionToApply.value.title}"!`);
+    } else {
+      console.log('Gagal melamar misi.');
     }
-    searchTimeout = setTimeout(() => {
-      console.log('Searching for:', searchQuery.value);
-    }, 300); // Delay 300ms
-  };
-  
-  // Fungsi untuk konfirmasi lamar misi
-  const confirmApply = (id, title) => {
-    missionToApply.value = { id, title };
-    showApplyConfirmModal.value = true;
-  };
-  
-  // Fungsi untuk membatalkan lamar misi
-  const cancelApply = () => {
+  } catch (error) {
+    console.error('Error during apply execution:', error);
+  } finally {
+    isApplying.value[missionId] = false;
     showApplyConfirmModal.value = false;
     missionToApply.value = { id: null, title: '' };
-  };
-  
-  // Fungsi untuk mengeksekusi lamaran misi
-  const executeApply = async () => {
-    isApplying.value[missionToApply.id] = true;
-    try {
-      const success = await missionStore.applyForMission(
-        missionToApply.value.id,
-        authStore.user.id // ID ninja yang sedang login
-      );
-      if (success) {
-        alert(`Berhasil melamar misi "${missionToApply.value.title}"!`);
-        // Misi akan otomatis terupdate di store karena missionStore.applyForMission
-        // memanggil update API dan memperbarui state lokal.
-      } else {
-        // missionStore.error akan terisi jika ada masalah
-        console.log('Gagal melamar misi.');
-      }
-    } catch (error) {
-      console.error('Error during apply execution:', error);
-    } finally {
-      isApplying.value[missionToApply.id] = false;
-      showApplyConfirmModal.value = false;
-      missionToApply.value = { id: null, title: '' };
-    }
-  };
-  </script>
+  }
+};
+</script>
+
   
   <style scoped>
   /* Scoped styles untuk NinjaAvailableMissions.vue */

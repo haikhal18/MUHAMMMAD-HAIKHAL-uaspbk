@@ -7,16 +7,16 @@
       <form @submit.prevent="handleRegister" class="register-form">
         <BaseInput
           id="user-id"
-          label="ID Agen / Client "
-          type="number"
-          v-model.number="formData.id" placeholder="Masukkan ID pengguna unik (misal: 10, 11)"
+          label="ID Agen / Client"
+          type="text"
+          v-model="formData.id"
+          placeholder="Contoh: 123"
           :errorMessage="errors.id"
           required
-          hint="Pastikan ID unik dan belum digunakan. Contoh: 10, 11, dst."
         />
         <BaseInput
           id="username"
-          label="Username "
+          label="Username"
           type="text"
           v-model="formData.username"
           :errorMessage="authStore.error && authStore.error.includes('Username') ? authStore.error : errors.username"
@@ -53,11 +53,11 @@
           <label class="role-label">Daftar sebagai:</label>
           <div class="role-options">
             <label class="radio-button-wrapper">
-              <input type="radio" v-model="formData.role" value="client" name="role" required>
+              <input type="radio" v-model="formData.role" value="client" name="role" required />
               <span class="custom-radio-button">Klien</span>
             </label>
             <label class="radio-button-wrapper">
-              <input type="radio" v-model="formData.role" value="ninja" name="role" required>
+              <input type="radio" v-model="formData.role" value="ninja" name="role" required />
               <span class="custom-radio-button">Cyber Ninja</span>
             </label>
           </div>
@@ -81,6 +81,12 @@
         @dismissed="clearErrors"
         class="register-alert"
       />
+
+      <!-- ✅ Link ke Login -->
+      <div class="form-footer">
+        Sudah punya akun? 
+        <RouterLink class="login-link highlight-link" to="/login">Masuk di sini</RouterLink>
+      </div>
     </div>
 
     <LoadingSpinner v-if="authStore.loading" :overlay="true" text="Mendaftarkan Akun..." />
@@ -88,43 +94,43 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted, watch } from 'vue';
+import { ref, watch, onMounted, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import BaseInput from '@/components/common/BaseInput.vue';
 import BaseButton from '@/components/common/BaseButton.vue';
 import AlertMessage from '@/components/common/AlertMessage.vue';
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
-import { nextTick } from 'vue';
 
 const formData = ref({
-  id: null, // TAMBAH INI: ID yang akan dimasukkan manual
+  id: '',
   username: '',
   email: '',
   password: '',
   confirmPassword: '',
-  role: null, // 'client' atau 'ninja'
+  role: null,
 });
 
 const errors = ref({});
+const showRegisterAlert = ref(false);
 const authStore = useAuthStore();
 const router = useRouter();
 
-const showRegisterAlert = ref(false);
+const clearErrors = () => {
+  authStore.error = null;
+  errors.value = {};
+  showRegisterAlert.value = false;
+};
 
-// Watcher untuk error dari authStore
 watch(() => authStore.error, (newError) => {
   if (newError) {
     showRegisterAlert.value = true;
     nextTick(() => {
-        setTimeout(() => showRegisterAlert.value = false, 5000);
+      setTimeout(() => showRegisterAlert.value = false, 5000);
     });
-  } else {
-    showRegisterAlert.value = false;
   }
 });
 
-// Watcher untuk errors lokal (validasi form)
 watch(errors, (newErrors) => {
   if (Object.keys(newErrors).length > 0) {
     showRegisterAlert.value = true;
@@ -134,34 +140,24 @@ watch(errors, (newErrors) => {
 });
 
 onMounted(() => {
-    authStore.error = null;
-    showRegisterAlert.value = false;
-    resetForm(); // Reset form untuk memastikan ID field kosong/null
+  clearErrors();
+  resetForm();
 });
 
-const clearErrors = () => {
-    authStore.error = null; // Bersihkan error dari store
-    errors.value = {}; // Bersihkan error lokal
-    showRegisterAlert.value = false;
-};
-
-// Fungsi validasi form lokal
 const validateForm = () => {
-  clearErrors(); // Reset error sebelum validasi baru
+  clearErrors();
   let isValid = true;
 
-  // VALIDASI BARU UNTUK ID PENGGUNA
-  if (formData.value.id === null || formData.value.id <= 0 || !Number.isInteger(formData.value.id)) {
-      errors.value.id = 'ID pengguna harus angka bulat positif.';
-      isValid = false;
+  if (!formData.value.id || !/^\d+$/.test(formData.value.id)) {
+    errors.value.id = 'ID hanya boleh angka, contoh: 123.';
+    isValid = false;
   }
-  // Keunikan ID akan dicek di server (json-server akan merespons 409 Conflict)
-  // dan ditangani di authStore.register
 
   if (!formData.value.username.trim()) {
     errors.value.username = 'Username wajib diisi.';
     isValid = false;
   }
+
   if (!formData.value.email.trim()) {
     errors.value.email = 'Email wajib diisi.';
     isValid = false;
@@ -169,6 +165,7 @@ const validateForm = () => {
     errors.value.email = 'Format email tidak valid.';
     isValid = false;
   }
+
   if (!formData.value.password) {
     errors.value.password = 'Password wajib diisi.';
     isValid = false;
@@ -176,10 +173,12 @@ const validateForm = () => {
     errors.value.password = 'Password minimal 6 karakter.';
     isValid = false;
   }
+
   if (formData.value.password !== formData.value.confirmPassword) {
     errors.value.confirmPassword = 'Konfirmasi password tidak cocok.';
     isValid = false;
   }
+
   if (!formData.value.role) {
     errors.value.role = 'Pilih peran (Klien atau Cyber Ninja).';
     isValid = false;
@@ -189,45 +188,36 @@ const validateForm = () => {
 };
 
 const handleRegister = async () => {
-  if (!validateForm()) {
-    return;
-  }
+  if (!validateForm()) return;
 
-  // Buat payload dengan semua data, termasuk ID manual
   const payload = {
-    id: Number(formData.value.id), // PENTING: Pastikan ID adalah angka saat dikirim
+    id: formData.value.id,
     username: formData.value.username,
     email: formData.value.email,
     password: formData.value.password,
     role: formData.value.role,
   };
 
-  const success = await authStore.register(payload); // Kirim payload dengan ID
+  const success = await authStore.register(payload);
 
   if (success) {
-    // Jika registrasi berhasil (dan otomatis login di authStore.register),
-    // redirect ke dashboard yang sesuai
-    if (authStore.isClient) {
-      router.push('/client/dashboard');
-    } else if (authStore.isNinja) {
-      router.push('/ninja/dashboard');
-    }
+    router.push('/login'); // ✅ Redirect ke halaman login
   } else {
-    // authStore.error akan terisi jika ada masalah (termasuk ID sudah ada)
-    if (authStore.error && authStore.error.includes('ID sudah digunakan')) { // Pesan spesifik dari store
-         errors.value.id = 'ID ini sudah digunakan.';
-    } else if (authStore.error && authStore.error.includes('Username sudah digunakan')) { // Pesan spesifik dari store
-         errors.value.username = 'Username ini sudah digunakan.';
-    } else if (authStore.error && authStore.error.includes('Email sudah terdaftar')) { // Pesan spesifik dari store
-         errors.value.email = 'Email ini sudah terdaftar.';
+    if (authStore.error?.includes('ID sudah digunakan')) {
+      errors.value.id = 'ID ini sudah digunakan.';
     }
-    console.log('Registration failed, error shown via alert.');
+    if (authStore.error?.includes('Username sudah digunakan')) {
+      errors.value.username = 'Username ini sudah digunakan.';
+    }
+    if (authStore.error?.includes('Email sudah terdaftar')) {
+      errors.value.email = 'Email ini sudah terdaftar.';
+    }
   }
 };
 
 const resetForm = () => {
   formData.value = {
-    id: null, // Reset ID field
+    id: '',
     username: '',
     email: '',
     password: '',
@@ -237,6 +227,17 @@ const resetForm = () => {
   errors.value = {};
 };
 </script>
+
+<style scoped>
+/* (biarkan CSS seperti yang sudah kamu buat sebelumnya — tidak diubah) */
+
+/* ... CSS yang sama dari pesan sebelumnya ... */
+</style>
+
+<style scoped>
+/* Tambahkan styling CSS sesuai kebutuhan proyek Anda */
+</style>
+
 
 <style scoped>
 /* Scoped styles untuk Register.vue */

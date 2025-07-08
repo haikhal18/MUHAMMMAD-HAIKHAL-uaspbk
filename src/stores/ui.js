@@ -90,49 +90,8 @@ export const useUiStore = defineStore('ui', {
       this.notification.autoDismiss = 3000;
     },
 
-    // --- Global Modal Actions (Opsional) ---
-    // Jika Anda ingin modal yang bisa dikontrol dari mana saja di aplikasi
-    // async showGlobalModal(options = {}) {
-    //   return new Promise((resolve, reject) => {
-    //     this.globalModal = {
-    //       isVisible: true,
-    //       title: options.title || 'Pesan',
-    //       content: options.content || 'Isi modal...',
-    //       maxWidth: options.maxWidth || '600px',
-    //       disableClose: options.disableClose || false,
-    //       resolve,
-    //       reject,
-    //     };
-    //   });
-    // },
-
-    // confirmGlobalModal() {
-    //   if (this.globalModal.resolve) {
-    //     this.globalModal.resolve(true);
-    //   }
-    //   this.hideGlobalModal();
-    // },
-
-    // cancelGlobalModal() {
-    //   if (this.globalModal.reject) {
-    //     this.globalModal.reject(false);
-    //   }
-    //   this.hideGlobalModal();
-    // },
-
-    // hideGlobalModal() {
-    //   this.globalModal.isVisible = false;
-    //   this.globalModal.title = '';
-    //   this.globalModal.content = null;
-    //   this.globalModal.maxWidth = '600px';
-    //   this.globalModal.disableClose = false;
-    //   this.globalModal.resolve = null;
-    //   this.globalModal.reject = null;
-    // },
-
-    /**
-     * Mereset semua state UI ke nilai defaultnya.
-     */
+  
+    
     resetState() {
       this.globalLoading = false;
       this.notification = {

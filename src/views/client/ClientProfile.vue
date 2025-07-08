@@ -77,144 +77,133 @@
   </template>
   
   <script setup>
-  import { ref, reactive, onMounted, watch } from 'vue';
-  import { useRouter } from 'vue-router';
-  import { useAuthStore } from '@/stores/auth';
-  import BaseInput from '@/components/common/BaseInput.vue';
-  import BaseButton from '@/components/common/BaseButton.vue';
-  import AlertMessage from '@/components/common/AlertMessage.vue';
-  import LoadingSpinner from '@/components/ui/LoadingSpinner.vue'; // Gunakan jika loading secara lokal
-  import axios from 'axios'; // Untuk update user data via API
-  
-  const authStore = useAuthStore();
-  const router = useRouter();
-  
-  // Gunakan reactive untuk form data karena bisa ada banyak properti
-  const formData = reactive({
-    id: null,
-    username: '',
-    email: '',
-    company: '',
-    password: '',
-    confirmPassword: '',
-    role: 'client', // Pastikan role tidak berubah
-  });
-  
-  const errors = ref({}); // Untuk validasi form
-  const isUpdating = ref(false); // Loading state lokal untuk tombol submit
-  const profileAlert = reactive({ // State untuk AlertMessage
-    isVisible: false,
-    message: '',
-    type: 'info',
-    autoDismiss: 3000,
-  });
-  
-  // Fungsi untuk menampilkan alert
-  const showAlert = (message, type, autoDismiss = 3000) => {
-    profileAlert.isVisible = true;
-    profileAlert.message = message;
-    profileAlert.type = type;
-    profileAlert.autoDismiss = autoDismiss;
-  };
-  
-  // Validasi form
-  const validateForm = () => {
-    errors.value = {}; // Reset error
-    let isValid = true;
-  
-    if (!formData.email.trim()) {
-      errors.value.email = 'Email wajib diisi.';
+import { ref, reactive, onMounted, watch } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import BaseInput from '@/components/common/BaseInput.vue';
+import BaseButton from '@/components/common/BaseButton.vue';
+import AlertMessage from '@/components/common/AlertMessage.vue';
+import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
+import axios from 'axios';
+
+const authStore = useAuthStore();
+const router = useRouter();
+
+const formData = reactive({
+  id: '', // Gunakan string untuk ID seperti "id-212"
+  username: '',
+  email: '',
+  company: '',
+  password: '',
+  confirmPassword: '',
+  role: 'client',
+});
+
+const errors = ref({});
+const isUpdating = ref(false);
+const profileAlert = reactive({
+  isVisible: false,
+  message: '',
+  type: 'info',
+  autoDismiss: 3000,
+});
+
+const showAlert = (message, type, autoDismiss = 3000) => {
+  profileAlert.isVisible = true;
+  profileAlert.message = message;
+  profileAlert.type = type;
+  profileAlert.autoDismiss = autoDismiss;
+};
+
+const validateForm = () => {
+  errors.value = {};
+  let isValid = true;
+
+  if (!formData.email.trim()) {
+    errors.value.email = 'Email wajib diisi.';
+    isValid = false;
+  } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+    errors.value.email = 'Format email tidak valid.';
+    isValid = false;
+  }
+
+  if (formData.password || formData.confirmPassword) {
+    if (formData.password.length < 6) {
+      errors.value.password = 'Password minimal 6 karakter.';
       isValid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      errors.value.email = 'Format email tidak valid.';
+    }
+    if (formData.password !== formData.confirmPassword) {
+      errors.value.confirmPassword = 'Konfirmasi password tidak cocok.';
       isValid = false;
     }
-  
-    // Validasi password hanya jika pengguna mencoba mengubahnya
-    if (formData.password || formData.confirmPassword) {
-      if (formData.password.length < 6) {
-        errors.value.password = 'Password minimal 6 karakter.';
-        isValid = false;
-      }
-      if (formData.password !== formData.confirmPassword) {
-        errors.value.confirmPassword = 'Konfirmasi password tidak cocok.';
-        isValid = false;
-      }
-    }
-  
-    return isValid;
+  }
+
+  return isValid;
+};
+
+const populateFormData = () => {
+  if (authStore.user) {
+    formData.id = authStore.user.id; // string seperti "id-212"
+    formData.username = authStore.user.username;
+    formData.email = authStore.user.email;
+    formData.company = authStore.user.company || '';
+    formData.password = '';
+    formData.confirmPassword = '';
+    errors.value = {};
+  }
+};
+
+const updateProfile = async () => {
+  if (!validateForm()) {
+    showAlert('Harap perbaiki kesalahan pada formulir.', 'error', null);
+    return;
+  }
+
+  isUpdating.value = true;
+  errors.value = {};
+
+  const payload = {
+    email: formData.email,
+    company: formData.company,
   };
-  
-  // Fungsi untuk mengisi form data saat komponen dimuat atau user berubah
-  const populateFormData = () => {
-    if (authStore.user) {
-      formData.id = authStore.user.id;
-      formData.username = authStore.user.username;
-      formData.email = authStore.user.email;
-      formData.company = authStore.user.company || ''; // Pastikan ada default jika null/undefined
-      formData.password = ''; // Pastikan password field kosong
-      formData.confirmPassword = '';
-      errors.value = {}; // Bersihkan error saat mengisi form
-    }
-  };
-  
-  // Fungsi untuk update profil
-  const updateProfile = async () => {
-    if (!validateForm()) {
-      showAlert('Harap perbaiki kesalahan pada formulir.', 'error', null); // Manual dismiss
-      return;
-    }
-  
-    isUpdating.value = true;
-    errors.value = {}; // Clear errors before API call
-  
-    const payload = {
-      email: formData.email,
-      company: formData.company,
-    };
-  
-    // Hanya tambahkan password ke payload jika diisi
-    if (formData.password) {
-      payload.password = formData.password; // Dalam aplikasi nyata, ini harus di-hash
-    }
-  
-    try {
-      // Perhatikan: Json-server tidak ada endpoint PUT/PATCH di authStore untuk user data
-      // Jadi kita panggil langsung axios di sini
-      // Atau Anda bisa menambahkan aksi `updateUser` di auth.js
-      const response = await axios.patch(`http://localhost:3000/users/${formData.id}`, payload);
-  
-      // Update user di Pinia authStore dan localStorage
-      authStore.user = { ...authStore.user, ...response.data };
-      localStorage.setItem('user', JSON.stringify(authStore.user));
-  
-      showAlert('Profil berhasil diperbarui!', 'success', 3000);
-      formData.password = ''; // Kosongkan password fields setelah sukses
-      formData.confirmPassword = '';
-    } catch (err) {
-      console.error('Error updating profile:', err);
-      showAlert('Gagal memperbarui profil. Silakan coba lagi.', 'error', null);
-    } finally {
-      isUpdating.value = false;
-    }
-  };
-  
-  onMounted(() => {
-    // Pastikan hanya klien yang bisa mengakses halaman ini
-    if (!authStore.isAuthenticated || !authStore.isClient) {
-      router.push('/login'); // Redirect jika tidak login sebagai klien
-    } else {
-      populateFormData(); // Isi form dengan data user saat ini
-    }
-  });
-  
-  // Watch user data in authStore to re-populate form if it changes (e.g., after initial load)
-  watch(() => authStore.user, (newUser) => {
-    if (newUser) {
-      populateFormData();
-    }
-  }, { deep: true }); // Watch secara mendalam untuk perubahan dalam objek user
-  </script>
+
+  if (formData.password) {
+    payload.password = formData.password;
+  }
+
+  try {
+    // Gunakan ID string seperti "id-212"
+    const response = await axios.patch(`http://localhost:3000/users/${formData.id}`, payload);
+
+    authStore.user = { ...authStore.user, ...response.data };
+    localStorage.setItem('user', JSON.stringify(authStore.user));
+
+    showAlert('Profil berhasil diperbarui!', 'success', 3000);
+    formData.password = '';
+    formData.confirmPassword = '';
+  } catch (err) {
+    console.error('Error updating profile:', err);
+    showAlert('Gagal memperbarui profil. Silakan coba lagi.', 'error', null);
+  } finally {
+    isUpdating.value = false;
+  }
+};
+
+onMounted(() => {
+  if (!authStore.isAuthenticated || !authStore.isClient) {
+    router.push('/login');
+  } else {
+    populateFormData();
+  }
+});
+
+watch(() => authStore.user, (newUser) => {
+  if (newUser) {
+    populateFormData();
+  }
+}, { deep: true });
+</script>
+
   
   <style scoped>
   /* Scoped styles untuk ClientProfile.vue */

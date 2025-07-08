@@ -10,11 +10,12 @@
         <BaseInput
           id="mission-id"
           label="ID Misi (Manual)"
-          type="number"
-          v-model="formData.id"@input="handleIdInput"placeholder="Masukkan ID misi unik (misal: 112, 113)"
+          type="text"
+          v-model="formData.id"
+          placeholder="Contoh: MID-101"
           :errorMessage="errors.id"
           required
-          hint="Pastikan ID unik dan belum digunakan. Contoh: 112, 113, dst."
+          hint="ID unik, gunakan format seperti MID-123"
         />
         <BaseInput
           id="mission-title"
@@ -55,9 +56,9 @@
           label="Keahlian yang Dibutuhkan"
           type="text"
           v-model="skillsInput"
-          placeholder="Contoh: Penetration Testing, Digital Forensics, OSINT (pisahkan dengan koma)"
+          placeholder="Contoh: Penetration Testing, Digital Forensics"
           :errorMessage="errors.requiredSkills"
-          hint="Daftar keahlian spesifik yang harus dimiliki oleh Cyber Ninja pelamar."
+          hint="Pisahkan dengan koma jika lebih dari satu."
         />
 
         <BaseButton
@@ -91,13 +92,13 @@ import BaseInput from '@/components/common/BaseInput.vue';
 import BaseButton from '@/components/common/BaseButton.vue';
 import AlertMessage from '@/components/common/AlertMessage.vue';
 
+const router = useRouter();
 const authStore = useAuthStore();
 const missionStore = useMissionStore();
-const router = useRouter();
 
 const formData = reactive({
-  id: null,
-  clientId: null,
+  id: '', // ID sekarang string
+  clientId: '',
   title: '',
   description: '',
   bounty: null,
@@ -125,13 +126,8 @@ const validateForm = () => {
   errors.value = {};
   let isValid = true;
 
-  if (
-    !formData.id ||
-    isNaN(Number(formData.id)) ||
-    Number(formData.id) <= 0 ||
-    !Number.isInteger(Number(formData.id))
-  ) {
-    errors.value.id = 'ID misi harus angka bulat positif.';
+  if (!formData.id || !/^MID-\d{3,}$/.test(formData.id)) {
+    errors.value.id = 'Gunakan format ID seperti MID-123.';
     isValid = false;
   }
 
@@ -144,42 +140,38 @@ const validateForm = () => {
     isValid = false;
   }
   if (!formData.bounty || formData.bounty <= 0) {
-    errors.value.bounty = 'Bayaran misi harus angka positif.';
+    errors.value.bounty = 'Bayaran misi harus lebih dari 0.';
     isValid = false;
   }
   if (!formData.deadline) {
     errors.value.deadline = 'Deadline misi wajib diisi.';
     isValid = false;
   } else {
+    const deadline = new Date(formData.deadline);
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const deadlineDate = new Date(formData.deadline);
-    if (deadlineDate < today) {
-      errors.value.deadline = 'Deadline tidak boleh tanggal yang sudah lewat.';
+    if (deadline < today) {
+      errors.value.deadline = 'Deadline tidak boleh di masa lalu.';
       isValid = false;
     }
   }
 
-  if (!skillsInput.value.trim()) {
-    errors.value.requiredSkills = 'Setidaknya satu keahlian dibutuhkan.';
+  const parsedSkills = skillsInput.value
+    .split(',')
+    .map(s => s.trim())
+    .filter(s => s.length > 0);
+
+  if (parsedSkills.length === 0) {
+    errors.value.requiredSkills = 'Minimal satu keahlian harus diisi.';
     isValid = false;
-  } else {
-    const parsedSkills = skillsInput.value
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
-    if (parsedSkills.length === 0) {
-      errors.value.requiredSkills = 'Keahlian tidak boleh kosong.';
-      isValid = false;
-    }
-    formData.requiredSkills = parsedSkills;
   }
 
+  formData.requiredSkills = parsedSkills;
   return isValid;
 };
 
 const submitNewMission = async () => {
-  formData.clientId = authStore.user?.id;
+  formData.clientId = String(authStore.user?.id || '');
 
   if (!authStore.isClient || !formData.clientId) {
     showAlert('Anda harus login sebagai klien.', 'error');
@@ -192,8 +184,8 @@ const submitNewMission = async () => {
   }
 
   const payload = {
-    id: String(formData.id), // Konversi ke string!
-    clientId: String(formData.clientId), // Konversi ke string!
+    id: formData.id, // ID string
+    clientId: formData.clientId,
     title: formData.title,
     description: formData.description,
     bounty: formData.bounty,
@@ -205,32 +197,21 @@ const submitNewMission = async () => {
   };
 
   try {
-    const createdMission = await missionStore.createMission(payload);
-    if (createdMission) {
-      showAlert(`Misi berhasil diposting! ID: ${createdMission.id}`, 'success', 5000);
+    const created = await missionStore.createMission(payload);
+    if (created) {
+      showAlert('Misi berhasil diposting!', 'success', 4000);
       resetForm();
     } else {
-      if (missionStore.error?.includes('Konflik ID')) {
-        errors.value.id = 'ID ini sudah digunakan.';
-        showAlert('ID sudah dipakai. Gunakan ID unik lain.', 'error');
-      } else {
-        showAlert(missionStore.error || 'Gagal membuat misi.', 'error');
-      }
+      showAlert(missionStore.error || 'Gagal membuat misi.', 'error');
     }
   } catch (err) {
-    console.error('Error creating mission:', err);
-    if (err.response?.status === 409) {
-      errors.value.id = 'ID ini sudah digunakan.';
-      showAlert('ID Misi sudah dipakai.', 'error');
-    } else {
-      showAlert('Terjadi kesalahan saat membuat misi.', 'error');
-    }
+    console.error('Create mission error:', err);
+    showAlert('Terjadi kesalahan saat menyimpan misi.', 'error');
   }
 };
 
 const resetForm = () => {
-  formData.id = null;
-  formData.clientId = authStore.user?.id;
+  formData.id = '';
   formData.title = '';
   formData.description = '';
   formData.bounty = null;
@@ -244,9 +225,9 @@ onMounted(() => {
   if (!authStore.isAuthenticated || !authStore.isClient) {
     router.push('/login');
   }
-  resetForm();
 });
 </script>
+
 
 <style scoped>
 /* Scoped styles untuk ClientNewMission.vue */
@@ -256,7 +237,6 @@ onMounted(() => {
   max-width: 900px;
   margin: 0 auto;
 }
-
 /* --- Page Hero Section --- */
 .page-hero {
   text-align: center;

@@ -42,19 +42,6 @@ onMounted(() => {
 </script>
 
 <style>
-/* Gaya di sini adalah gaya GLOBAL yang diterapkan ke seluruh aplikasi.
-   Sebaiknya gaya GLOBAL HANYA ADA di satu tempat utama (misalnya main.css)
-   untuk menghindari duplikasi dan konflik.
-   
-   Saya akan memastikan URL gambar latar belakang konsisten di sini.
-   Gaya untuk #app dan .global-alert-position ini
-   ADALAH GAYA GLOBAL YANG BENAR untuk berada di App.vue jika Anda ingin
-   memiliki kontrol langsung pada root elemen dan posisi alert global.
-
-   Jika Anda sebelumnya memiliki gaya #app atau .main-content yang sama di main.css,
-   ANDA BISA MENGHAPUSNYA DARI MAIN.CSS dan biarkan di sini saja.
-   Ini lebih aman karena App.vue adalah root komponen, dan gayanya langsung menempel.
-*/
 
 #app {
   font-family: var(--font-primary);
@@ -66,9 +53,7 @@ onMounted(() => {
   display: flex;
   flex-direction: column;
 
-  /* Latar Belakang Gambar Cyber Ninja dengan Overlay */
-  /* Pastikan nama file gambar ini konsisten dengan nama di folder Anda */
-  background-image: url('./assets/images/cyber-ninja-merah.jpg'); /* Pastikan path dan nama file ini BENAR */
+  background-image: url('./assets/images/cyber-ninja-merah.jpg'); 
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;

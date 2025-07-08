@@ -38,7 +38,7 @@
       <div v-if="!missionStore.loading && filteredMissions.length" class="mission-grid">
         <MissionCard
           v-for="mission in filteredMissions"
-          :key="mission.id"
+          :key="String(mission.id)"
           :mission="mission"
         >
           <template #actions>
@@ -49,12 +49,14 @@
               @click="editMission(mission.id)"
             />
             <BaseButton
-              v-if="mission.status === 'available' && mission.applicants?.length > 0" variant="primary"
+              v-if="mission.status === 'available' && mission.applicants?.length > 0"
+              variant="primary"
               text="Kelola Pelamar"
               @click="manageMission(mission.id)"
             />
             <BaseButton
-              v-else-if="mission.status === 'available' && mission.applicants?.length === 0" variant="outline"
+              v-else-if="mission.status === 'available' && mission.applicants?.length === 0"
+              variant="outline"
               text="Menunggu Pelamar"
               :disabled="true"
             />
@@ -80,16 +82,25 @@
               variant="danger"
               text="Hapus"
               @click="confirmDelete(mission.id, mission.title)"
-              :disabled="missionStore.loading || mission.status === 'assigned' || mission.status === 'completed'" />
-            <router-link :to="`/client/missions/${mission.id}`" class="base-button view-detail-button">
-                Lihat Detail
+              :disabled="missionStore.loading || mission.status === 'assigned' || mission.status === 'completed'"
+            />
+            <router-link
+              :to="`/client/missions/${String(mission.id)}`"
+              class="base-button view-detail-button"
+            >
+              Lihat Detail
             </router-link>
           </template>
         </MissionCard>
       </div>
+
       <div v-else-if="!missionStore.loading" class="no-missions">
         <p>Anda belum memposting misi apapun yang sesuai dengan filter saat ini.</p>
-        <p>Mulai <router-link to="/client/missions/new" class="highlight-link">Posting Misi Baru</router-link> sekarang!</p>
+        <p>
+          Mulai
+          <router-link to="/client/missions/new" class="highlight-link">Posting Misi Baru</router-link>
+          sekarang!
+        </p>
       </div>
     </section>
 
@@ -110,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useMissionStore } from '@/stores/mission';
@@ -120,7 +131,6 @@ import MissionCard from '@/components/ui/MissionCard.vue';
 import BaseButton from '@/components/common/BaseButton.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
 import ModalDialog from '@/components/ui/ModalDialog.vue';
-import { nextTick } from 'vue';
 
 const authStore = useAuthStore();
 const missionStore = useMissionStore();
@@ -143,16 +153,15 @@ const statusOptions = [
   { value: 'cancelled', label: 'Dibatalkan' },
 ];
 
+// 🟢 Perbandingan ID dalam bentuk string (cocokkan "id-123" dan 123)
 const clientMissions = computed(() => {
   if (!authStore.user?.id) return [];
-  // Mengonversi kedua sisi perbandingan ke NUMBER
-  // Ini akan memastikan perbandingan angka, tidak peduli apakah ID awalnya string atau number
-  // sesuai dengan konsistensi ID integer di db.json
-  return missionStore.missions.filter(mission => 
-    Number(mission.clientId) === Number(authStore.user.id)
+  return missionStore.missions.filter(mission =>
+    String(mission.clientId).toLowerCase() === String(authStore.user.id).toLowerCase()
   );
 });
 
+// Filter + Search + Sort
 const filteredMissions = computed(() => {
   let missions = clientMissions.value;
 
@@ -169,11 +178,16 @@ const filteredMissions = computed(() => {
     );
   }
 
-  // Mengurutkan misi (yang terbaru di atas)
-  // Penting: Mengonversi ID ke Number untuk sorting numerik jika ID mungkin string di awal
-  return missions.sort((a, b) => Number(b.id) - Number(a.id));
+  return missions.sort((a, b) => {
+    const extractNumber = (id) => {
+      const match = String(id).match(/\d+/);
+      return match ? parseInt(match[0]) : 0;
+    };
+    return extractNumber(b.id) - extractNumber(a.id);
+  });
 });
 
+// Watcher error
 watch(() => missionStore.error, (newError) => {
   if (newError) {
     showErrorAlert.value = true;
@@ -185,17 +199,18 @@ watch(() => missionStore.error, (newError) => {
   }
 });
 
+// Load misi
 onMounted(() => {
   if (authStore.isClient && authStore.user?.id) {
-    missionStore.fetchAllMissions(); // Mengambil semua misi, nanti difilter di computed property
+    missionStore.fetchAllMissions();
   } else {
-    router.push('/login'); // Redirect jika tidak berhak
+    router.push('/login');
   }
 });
 
+// Aksi tombol
 const applyFilters = () => {
-  console.log('Applying filter:', filterStatus.value);
-  // `filteredMissions` computed property akan otomatis re-evaluate
+  console.log('Filter diterapkan:', filterStatus.value);
 };
 
 const debounceSearch = () => {
@@ -203,21 +218,20 @@ const debounceSearch = () => {
     clearTimeout(searchTimeout);
   }
   searchTimeout = setTimeout(() => {
-    console.log('Searching for:', searchQuery.value);
-    // `filteredMissions` computed property akan otomatis re-evaluate
+    console.log('Pencarian:', searchQuery.value);
   }, 300);
 };
 
 const editMission = (missionId) => {
-  router.push(`/client/missions/${missionId}/edit`);
+  router.push(`/client/missions/${String(missionId)}/edit`);
 };
 
 const manageMission = (missionId) => {
-  router.push(`/client/missions/${missionId}`);
+  router.push(`/client/missions/${String(missionId)}`);
 };
 
 const confirmDelete = (id, title) => {
-  missionToDelete.value = { id, title };
+  missionToDelete.value = { id: String(id), title };
   showDeleteConfirmModal.value = true;
 };
 
@@ -229,15 +243,12 @@ const cancelDelete = () => {
 const executeDelete = async () => {
   isDeletingMission.value = true;
   try {
-    const success = await missionStore.deleteMission(Number(missionToDelete.value.id));
+    const success = await missionStore.deleteMission(String(missionToDelete.value.id));
     if (success) {
-      console.log('Misi berhasil dihapus!');
-      missionStore.fetchAllMissions(); // Refresh data di halaman setelah hapus
-    } else {
-      console.log('Gagal menghapus misi.');
+      missionStore.fetchAllMissions();
     }
   } catch (error) {
-    console.error('Error during delete execution:', error);
+    console.error('Error saat menghapus misi:', error);
   } finally {
     isDeletingMission.value = false;
     showDeleteConfirmModal.value = false;
@@ -245,6 +256,8 @@ const executeDelete = async () => {
   }
 };
 </script>
+
+
 
 <style scoped>
 /* Scoped styles untuk ClientMissions.vue */

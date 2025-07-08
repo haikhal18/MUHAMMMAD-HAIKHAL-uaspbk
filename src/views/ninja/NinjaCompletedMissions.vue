@@ -56,16 +56,22 @@ const router = useRouter();
 
 const showErrorAlert = ref(false);
 
-// ✅ Misi selesai yang ditugaskan ke ninja ini (ID bisa string atau integer)
+// 🔢 Fungsi bantu untuk mengekstrak angka dari ID string seperti "MID-123"
+function extractNumberFromId(id) {
+  const match = String(id).match(/\d+/); // Ambil angka dari string
+  return match ? parseInt(match[0]) : 0;
+}
+
+// ✅ Misi selesai yang ditugaskan ke ninja ini (support MID-123)
 const completedMissions = computed(() => {
   if (!authStore.user?.id) return [];
 
   return missionStore.missions
     .filter(mission =>
       String(mission.assignedNinjaId) === String(authStore.user.id) &&
-      mission.status === 'completed' // ✅ pastikan status misi sesuai
+      mission.status === 'completed'
     )
-    .sort((a, b) => Number(b.id) - Number(a.id)); // ✅ urut berdasarkan angka ID, bukan string
+    .sort((a, b) => extractNumberFromId(b.id) - extractNumberFromId(a.id));
 });
 
 // Error watcher
@@ -91,7 +97,7 @@ onMounted(() => {
 
 // Navigasi ke detail misi
 const viewMissionDetail = (missionId) => {
-  router.push(`/ninja/missions/${missionId}`);
+  router.push(`/ninja/missions/${String(missionId)}`);
 };
 </script>
 

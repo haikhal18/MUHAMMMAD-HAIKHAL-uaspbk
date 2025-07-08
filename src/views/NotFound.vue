@@ -14,13 +14,7 @@
     </div>
   </template>
   
-  <script setup>
-  // Tidak ada logika JS spesifik yang diperlukan untuk halaman ini.
-  // Ini murni komponen presentasi untuk halaman 404.
-  </script>
-  
   <style scoped>
-  /* Scoped styles untuk NotFound.vue */
   
   .not-found-page {
     display: flex;

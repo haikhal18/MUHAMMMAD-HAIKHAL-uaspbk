@@ -175,20 +175,14 @@ const isUpdatingStatus = ref(false);
 
 const mission = computed(() => missionStore.currentMission);
 
-// ✅ Ambil dan parse ID dari route (selalu number)
-const missionId = computed(() => Number(route.params.id));
-
-// --- Ambil nama user berdasarkan ID ---
 const getUserNameById = (id, fallbackText = 'Unknown User') => {
   if (!id) return fallbackText;
-  const user = allUsers.value.find(u => Number(u.id) === Number(id));
+  const user = allUsers.value.find(u => u.id?.toString() === id.toString());
   return user ? user.username : fallbackText;
 };
 
-// --- Ambil semua users ---
 const fetchAllUsers = async () => {
   if (allUsers.value.length > 0) return;
-
   loadingApplicants.value = true;
   try {
     const response = await axios.get('http://localhost:3000/users');
@@ -201,36 +195,29 @@ const fetchAllUsers = async () => {
   }
 };
 
-// --- Ambil misi dan validasi kepemilikan ---
 const fetchMissionAndValidateUser = async (id) => {
-  const parsedId = Number(id);
-
-  if (!Number.isInteger(parsedId) || parsedId <= 0) {
+  const parsedId = id?.toString();
+  if (!parsedId.startsWith("MID-")) {
     missionStore.error = 'ID misi tidak valid.';
     router.push('/client/missions');
     return;
   }
-
   if (!authStore.isAuthenticated || !authStore.isClient || !authStore.user?.id) {
     router.push('/login');
     return;
   }
-
   await missionStore.fetchMissionById(parsedId);
-
   if (mission.value) {
-    if (Number(mission.value.clientId) !== Number(authStore.user.id)) {
+    if (mission.value.clientId?.toString() !== authStore.user.id?.toString()) {
       missionStore.error = 'Anda tidak memiliki akses untuk melihat misi ini.';
       router.push('/client/missions');
     }
-
     if ((mission.value.applicants?.length || 0) > 0 || mission.value.assignedNinjaId) {
       await fetchAllUsers();
     }
   }
 };
 
-// --- Watch dan Lifecycle Hooks ---
 watch(() => missionStore.error, (newError) => {
   if (newError) {
     showErrorAlert.value = true;
@@ -242,23 +229,17 @@ watch(() => missionStore.error, (newError) => {
   }
 });
 
-// ✅ Watch perubahan route dan ambil data jika ID berubah
 watch(
   () => route.params.id,
   (newId) => {
-    const parsedId = Number(newId);
-    if (Number.isInteger(parsedId) && parsedId !== Number(missionStore.currentMission?.id)) {
+    const parsedId = newId?.toString();
+    if (parsedId.startsWith("MID-") && parsedId !== missionStore.currentMission?.id?.toString()) {
       fetchMissionAndValidateUser(parsedId);
     }
   },
   { immediate: true }
 );
 
-onMounted(() => {
-  // Tidak perlu fetch di sini karena watcher `immediate` sudah mencakup
-});
-
-// --- Format dan Status ---
 const formatDate = (dateString) => {
   if (!dateString) return 'N/A';
   return new Date(dateString).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
@@ -274,19 +255,16 @@ const formatStatus = (status) => {
   return statusMap[status] || status;
 };
 
-
-
-
 const confirmCancelMission = (id, title) => {
-  missionToUpdateStatus.value = { id: Number(id), title };
+  missionToUpdateStatus.value = { id: id.toString(), title };
   showCancelConfirmModal.value = true;
 };
 
 const executeCancelMission = async () => {
   isUpdatingStatus.value = true;
   try {
-    await missionStore.updateMissionStatus(Number(missionToUpdateStatus.value.id), 'cancelled');
-    await missionStore.fetchMissionById(Number(missionToUpdateStatus.value.id));
+    await missionStore.updateMissionStatus(missionToUpdateStatus.value.id, 'cancelled');
+    await missionStore.fetchMissionById(missionToUpdateStatus.value.id);
   } finally {
     isUpdatingStatus.value = false;
     showCancelConfirmModal.value = false;
@@ -294,15 +272,15 @@ const executeCancelMission = async () => {
 };
 
 const confirmCompleteMission = (id, title) => {
-  missionToUpdateStatus.value = { id: Number(id), title };
+  missionToUpdateStatus.value = { id: id.toString(), title };
   showCompleteConfirmModal.value = true;
 };
 
 const executeCompleteMission = async () => {
   isUpdatingStatus.value = true;
   try {
-    await missionStore.updateMissionStatus(Number(missionToUpdateStatus.value.id), 'completed');
-    await missionStore.fetchMissionById(Number(missionToUpdateStatus.value.id));
+    await missionStore.updateMissionStatus(missionToUpdateStatus.value.id, 'completed');
+    await missionStore.fetchMissionById(missionToUpdateStatus.value.id);
   } finally {
     isUpdatingStatus.value = false;
     showCompleteConfirmModal.value = false;
@@ -310,15 +288,15 @@ const executeCompleteMission = async () => {
 };
 
 const archiveMission = (id) => {
-  alert(`Fitur Arsip Misi ${Number(id)} belum diimplementasikan.`);
+  alert(`Fitur Arsip Misi ${id.toString()} belum diimplementasikan.`);
 };
 
 const confirmAssignNinja = (missionId, ninjaId) => {
   showAssignConfirmModal.value = true;
   ninjaToAssign.value = {
-    id: Number(ninjaId),
+    id: ninjaId.toString(),
     name: getUserNameById(ninjaId),
-    missionId: Number(missionId),
+    missionId: missionId.toString(),
   };
 };
 
@@ -330,10 +308,10 @@ const executeAssign = async () => {
   isAssigning.value = true;
   try {
     await missionStore.assignNinjaToMission(
-      Number(ninjaToAssign.value.missionId),
-      Number(ninjaToAssign.value.id)
+      ninjaToAssign.value.missionId,
+      ninjaToAssign.value.id
     );
-    await missionStore.fetchMissionById(Number(ninjaToAssign.value.missionId));
+    await missionStore.fetchMissionById(ninjaToAssign.value.missionId);
   } finally {
     isAssigning.value = false;
     showAssignConfirmModal.value = false;
@@ -341,10 +319,11 @@ const executeAssign = async () => {
 };
 
 const viewNinjaProfile = (ninjaId) => {
-  alert(`Fitur Lihat Profil Ninja ${Number(ninjaId)} belum diimplementasikan.`);
+  router.push(`/ninja-profile/${ninjaId}`);
 };
-</script>
 
+
+</script>
 <style scoped>
 /* Scoped styles untuk ClientMissionDetail.vue */
 

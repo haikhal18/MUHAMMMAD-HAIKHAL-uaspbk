@@ -181,7 +181,7 @@ const handleLogin = async () => {
 }
 
 .highlight-link {
-  color: var(--color-primary-accent); /* Warna aksen untuk link daftar */
+  color: var(--color-primary-accent); 
   font-weight: bold;
 }
 

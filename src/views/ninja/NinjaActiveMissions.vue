@@ -1,153 +1,160 @@
 <template>
-    <div class="ninja-active-missions-page">
-      <section class="page-hero">
-        <h1 class="page-title">Misi Aktif</h1>
-        <p class="page-subtitle">Operasi siber yang sedang Anda kerjakan.</p>
-      </section>
-  
-      <section class="mission-list-section">
-        <LoadingSpinner v-if="missionStore.loading" text="Memuat misi aktif Anda..." />
-        <AlertMessage
-          v-if="missionStore.error && !missionStore.loading"
-          v-model:isVisible="showErrorAlert"
-          type="error"
-          :message="missionStore.error"
-          :dismissible="true"
-          @dismissed="missionStore.error = null"
-        />
-  
-        <div v-if="!missionStore.loading && activeMissions.length" class="mission-grid">
-          <MissionCard
-            v-for="mission in activeMissions"
-            :key="mission.id"
-            :mission="mission"
-          >
-            <template #actions>
-              <BaseButton
-                variant="secondary"
-                text="Lihat / Update Progres"
-                @click="viewMissionDetail(mission.id)"
-              />
-              <BaseButton
-                variant="primary"
-                text="Tandai Selesai"
-                @click="confirmCompleteMission(mission.id, mission.title)"
-                :disabled="isUpdatingStatus"
-              />
-            </template>
-          </MissionCard>
-        </div>
-        <div v-else-if="!missionStore.loading" class="no-missions">
-          <p>Anda belum memiliki misi aktif saat ini.</p>
-          <p>Jelajahi <router-link to="/ninja/missions/available" class="highlight-link">Misi Tersedia</router-link> untuk memulai operasi baru!</p>
-        </div>
-      </section>
-  
-      <ModalDialog
-        v-model:isVisible="showCompleteConfirmModal"
-        title="Tandai Misi Selesai"
-        max-width="450px"
-        :disableClose="isUpdatingStatus"
-      >
-        <p>Anda yakin ingin menandai misi <strong>"{{ missionToUpdateStatus.title }}"</strong> sebagai selesai?</p>
-        <p>Misi ini akan menunggu verifikasi dari Klien.</p>
-        <template #footer>
-          <BaseButton variant="outline" text="Tidak" @click="cancelStatusUpdate" :disabled="isUpdatingStatus" />
-          <BaseButton variant="primary" text="Ya, Misi Selesai" @click="executeCompleteMission" :loading="isUpdatingStatus" />
-        </template>
-      </ModalDialog>
-    </div>
-  </template>
-  
-  <script setup>
-  import { ref, computed, onMounted, watch } from 'vue';
-  import { useRouter } from 'vue-router';
-  import { useAuthStore } from '@/stores/auth';
-  import { useMissionStore } from '@/stores/mission';
-  import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
-  import AlertMessage from '@/components/common/AlertMessage.vue';
-  import MissionCard from '@/components/ui/MissionCard.vue';
-  import BaseButton from '@/components/common/BaseButton.vue';
-  import ModalDialog from '@/components/ui/ModalDialog.vue';
-  import { nextTick } from 'vue';
-  
-  const authStore = useAuthStore();
-  const missionStore = useMissionStore();
-  const router = useRouter();
-  
-  const showErrorAlert = ref(false);
-  
-  // State untuk modal perubahan status misi
-  const showCompleteConfirmModal = ref(false);
-  const missionToUpdateStatus = ref({ id: null, title: '' });
-  const isUpdatingStatus = ref(false);
-  
-  // Computed property untuk misi yang aktif dan ditugaskan kepada ninja ini
-  const activeMissions = computed(() => {
+  <div class="ninja-active-missions-page">
+    <section class="page-hero">
+      <h1 class="page-title">Misi Aktif</h1>
+      <p class="page-subtitle">Operasi siber yang sedang Anda kerjakan.</p>
+    </section>
+
+    <section class="mission-list-section">
+      <LoadingSpinner v-if="missionStore.loading" text="Memuat misi aktif Anda..." />
+      <AlertMessage
+        v-if="missionStore.error && !missionStore.loading"
+        v-model:isVisible="showErrorAlert"
+        type="error"
+        :message="missionStore.error"
+        :dismissible="true"
+        @dismissed="missionStore.error = null"
+      />
+
+      <div v-if="!missionStore.loading && activeMissions.length" class="mission-grid">
+        <MissionCard
+          v-for="mission in activeMissions"
+          :key="mission.id"
+          :mission="mission"
+        >
+          <template #actions>
+            <BaseButton
+              variant="secondary"
+              text="Lihat / Update Progres"
+              @click="viewMissionDetail(mission.id)"
+            />
+            <BaseButton
+              variant="primary"
+              text="Tandai Selesai"
+              @click="confirmCompleteMission(mission.id, mission.title)"
+              :disabled="isUpdatingStatus"
+            />
+          </template>
+        </MissionCard>
+      </div>
+
+      <div v-else-if="!missionStore.loading" class="no-missions">
+        <p>Anda belum memiliki misi aktif saat ini.</p>
+        <p>
+          Jelajahi
+          <router-link to="/ninja/missions/available" class="highlight-link">
+            Misi Tersedia
+          </router-link>
+          untuk memulai operasi baru!
+        </p>
+      </div>
+    </section>
+
+    <!-- Modal Konfirmasi Penyelesaian Misi -->
+    <ModalDialog
+      v-model:isVisible="showCompleteConfirmModal"
+      title="Tandai Misi Selesai"
+      max-width="450px"
+      :disableClose="isUpdatingStatus"
+    >
+      <p>Anda yakin ingin menandai misi <strong>"{{ missionToUpdateStatus.title }}"</strong> sebagai selesai?</p>
+      <p>Misi ini akan menunggu verifikasi dari Klien.</p>
+      <template #footer>
+        <BaseButton variant="outline" text="Tidak" @click="cancelStatusUpdate" :disabled="isUpdatingStatus" />
+        <BaseButton variant="primary" text="Ya, Misi Selesai" @click="executeCompleteMission" :loading="isUpdatingStatus" />
+      </template>
+    </ModalDialog>
+  </div>
+</template>
+
+<script setup>
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import { useRouter } from 'vue-router';
+import { useAuthStore } from '@/stores/auth';
+import { useMissionStore } from '@/stores/mission';
+import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
+import AlertMessage from '@/components/common/AlertMessage.vue';
+import MissionCard from '@/components/ui/MissionCard.vue';
+import BaseButton from '@/components/common/BaseButton.vue';
+import ModalDialog from '@/components/ui/ModalDialog.vue';
+
+const authStore = useAuthStore();
+const missionStore = useMissionStore();
+const router = useRouter();
+
+const showErrorAlert = ref(false);
+
+// Modal & Status
+const showCompleteConfirmModal = ref(false);
+const missionToUpdateStatus = ref({ id: null, title: '' });
+const isUpdatingStatus = ref(false);
+
+// ✅ Mendukung ID string seperti "MID-123"
+const activeMissions = computed(() => {
   if (!authStore.user?.id) return [];
-  return missionStore.missions.filter(mission =>
-    mission.assignedNinjaId == authStore.user.id && mission.status === 'assigned'
-  ).sort((a, b) => Number(b.id) - Number(a.id)); // Urutkan dari ID terbaru
+  return missionStore.missions
+    .filter(mission =>
+      String(mission.assignedNinjaId) === String(authStore.user.id) &&
+      mission.status === 'assigned'
+    )
+    .sort((a, b) => String(b.id).localeCompare(String(a.id)));
 });
 
-  
-  // Watcher untuk error dari missionStore
-  watch(() => missionStore.error, (newError) => {
-    if (newError) {
-      showErrorAlert.value = true;
-      nextTick(() => {
-        setTimeout(() => showErrorAlert.value = false, 5000);
-      });
-    } else {
-      showErrorAlert.value = false;
+watch(() => missionStore.error, (newError) => {
+  if (newError) {
+    showErrorAlert.value = true;
+    nextTick(() => {
+      setTimeout(() => showErrorAlert.value = false, 5000);
+    });
+  } else {
+    showErrorAlert.value = false;
+  }
+});
+
+onMounted(() => {
+  if (authStore.isNinja && authStore.user?.id) {
+    missionStore.fetchAllMissions();
+  } else {
+    router.push('/login');
+  }
+});
+
+// ✅ Router dengan ID string
+const viewMissionDetail = (missionId) => {
+  router.push(`/ninja/missions/${String(missionId)}`);
+};
+
+const confirmCompleteMission = (id, title) => {
+  missionToUpdateStatus.value = { id: String(id), title };
+  showCompleteConfirmModal.value = true;
+};
+
+const cancelStatusUpdate = () => {
+  showCompleteConfirmModal.value = false;
+  missionToUpdateStatus.value = { id: null, title: '' };
+};
+
+const executeCompleteMission = async () => {
+  isUpdatingStatus.value = true;
+  try {
+    const success = await missionStore.updateMissionStatus(
+      String(missionToUpdateStatus.value.id),
+      'completed'
+    );
+    if (success) {
+      alert(`Misi "${missionToUpdateStatus.value.title}" ditandai selesai! Menunggu verifikasi Klien.`);
+      missionStore.fetchAllMissions();
     }
-  });
-  
-  onMounted(() => {
-    // Hanya fetch misi jika user adalah ninja dan sudah login
-    if (authStore.isNinja && authStore.user?.id) {
-      missionStore.fetchAllMissions(); // Ambil semua misi, nanti difilter di computed property
-    } else {
-      router.push('/login'); // Redirect jika tidak berhak
-    }
-  });
-  
-  // Fungsi untuk melihat detail misi aktif atau update progres
-  const viewMissionDetail = (missionId) => {
-    router.push(`/ninja/missions/${missionId}`);
-  };
-  
-  // Fungsi untuk konfirmasi selesaikan misi
-  const confirmCompleteMission = (id, title) => {
-    missionToUpdateStatus.value = { id, title };
-    showCompleteConfirmModal.value = true;
-  };
-  
-  // Fungsi untuk membatalkan update status
-  const cancelStatusUpdate = () => {
+  } catch (error) {
+    console.error('Error completing mission:', error);
+  } finally {
+    isUpdatingStatus.value = false;
     showCompleteConfirmModal.value = false;
     missionToUpdateStatus.value = { id: null, title: '' };
-  };
-  
-  // Fungsi untuk mengeksekusi penyelesaian misi
-  const executeCompleteMission = async () => {
-    isUpdatingStatus.value = true;
-    try {
-      const success = await missionStore.updateMissionStatus(missionToUpdateStatus.value.id, 'completed');
-      if (success) {
-        alert(`Misi "${missionToUpdateStatus.value.title}" ditandai selesai! Menunggu verifikasi Klien.`);
-        // Refresh daftar misi untuk menghilangkan misi ini dari "Misi Aktif"
-        missionStore.fetchAllMissions();
-      }
-    } catch (error) {
-      console.error('Error completing mission:', error);
-    } finally {
-      isUpdatingStatus.value = false;
-      showCompleteConfirmModal.value = false;
-      missionToUpdateStatus.value = { id: null, title: '' };
-    }
-  };
-  </script>
+  }
+};
+</script>
+
   
   <style scoped>
   /* Scoped styles untuk NinjaActiveMissions.vue */

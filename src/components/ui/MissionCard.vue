@@ -2,93 +2,109 @@
   <div class="mission-card">
     <div class="card-header">
       <h3 class="mission-title">{{ mission?.title }}</h3>
-      <span :class="['mission-status', `status-${mission?.status}`]">{{ formatStatus(mission?.status) }}</span>
+      <span
+        v-if="mission?.status"
+        :class="['mission-status', 'status', `status-${mission.status}`]"
+      >
+        {{ formatStatus(mission.status) }}
+      </span>
     </div>
 
     <div class="card-body">
-      <p class="mission-description">{{ truncateDescription(mission?.description) }}</p>
+      <p class="mission-description">{{ truncatedDescription }}</p>
       <div class="mission-details">
         <div class="detail-item">
           <span class="detail-label">Bayaran:</span>
-          <span class="info-value bounty">${{ mission?.bounty?.toLocaleString() }}</span>
+          <span class="info-value bounty">{{ formattedBounty }}</span>
         </div>
         <div class="detail-item">
           <span class="detail-label">Deadline:</span>
-          <span class="info-value deadline">{{ formatDate(mission?.deadline) }}</span>
+          <span class="info-value deadline">{{ formattedDeadline }}</span>
         </div>
-        <div class="detail-item">
+        <div class="detail-item" v-if="mission?.requiredSkills?.length">
           <span class="detail-label">Keahlian Dibutuhkan:</span>
           <div class="info-value skills">
-            <span v-for="skill in mission?.requiredSkills" :key="skill" class="skill-tag">{{ skill }}</span>
+            <span
+              v-for="skill in mission.requiredSkills"
+              :key="skill"
+              class="skill-tag"
+            >
+              {{ skill }}
+            </span>
           </div>
         </div>
       </div>
     </div>
 
     <div class="card-footer">
-      <slot name="actions"></slot>
-      </div>
+      <RouterLink
+        v-if="mission?.id"
+        :to="generateDetailLink()"
+        class="detail-link view-detail-button"
+      >
+        Detail Misi
+      </RouterLink>
+      <slot name="actions" />
+    </div>
   </div>
 </template>
 
+
 <script setup>
-import {  computed } from 'vue';
+import { computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 
 const props = defineProps({
-  /**
-   * Objek misi yang akan ditampilkan.
-   */
   mission: {
     type: Object,
     required: true,
-    validator: (value) => {
-      return (
-        // PERBAIKAN DI SINI: Izinkan ID berupa number ATAU string
-        (typeof value.id === 'number' || typeof value.id === 'string') && 
-        typeof value.title === 'string' &&
-        typeof value.description === 'string' &&
-        typeof value.bounty === 'number' && // Pastikan bounty adalah number
-        typeof value.deadline === 'string' && // Pastikan deadline adalah string (YYYY-MM-DD)
-        Array.isArray(value.requiredSkills) && // Pastikan requiredSkills adalah array
-        typeof value.status === 'string' // Pastikan status adalah string
-      );
-    },
   },
 });
 
-// Fungsi untuk memotong deskripsi jika terlalu panjang
-const truncateDescription = (description, maxLength = 150) => {
-  if (!description) return ''; // Tambahkan penanganan jika description undefined
-  if (description.length <= maxLength) {
-    return description;
-  }
-  return description.substring(0, maxLength) + '...';
-};
+const auth = useAuthStore();
 
-// Fungsi untuk memformat tanggal
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const options = { year: 'numeric', month: 'short', day: 'numeric' };
-  // Menggunakan 'id-ID' secara eksplisit untuk konsistensi di test dan browser
-  return new Date(dateString).toLocaleDateString('id-ID', options);
-};
+const truncatedDescription = computed(() => {
+  const desc = props.mission?.description || '';
+  return desc.length > 150 ? desc.slice(0, 150) + '...' : desc;
+});
 
-// Fungsi untuk memformat status agar lebih mudah dibaca
+const formattedBounty = computed(() => {
+  return props.mission?.bounty?.toLocaleString('id-ID') || '0';
+});
+
+const formattedDeadline = computed(() => {
+  if (!props.mission?.deadline) return 'N/A';
+  const date = new Date(props.mission.deadline);
+  const day = date.getDate();
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+  const month = monthNames[date.getMonth()];
+  const year = date.getFullYear();
+  return `${day} ${month} ${year}`;
+});
+
 const formatStatus = (status) => {
-  const statusMap = {
+  const map = {
     available: 'Tersedia',
     assigned: 'Ditugaskan',
     completed: 'Selesai',
     cancelled: 'Dibatalkan',
   };
-  return statusMap[status] || status;
+  return map[status] || status;
+};
+
+const generateDetailLink = () => {
+  const id = props.mission.id;
+  if (auth.isAuthenticated) {
+    if (auth.user.role === 'client') return `/client/missions/${id}`;
+    if (auth.user.role === 'ninja') return `/ninja/missions/${id}`;
+  }
+  return `/missions/${id}`;
 };
 </script>
 
 <style scoped>
-/* Scoped styles untuk MissionCard */
 .mission-card {
-  background-color: var(--color-background-card); /* Ungu gelap kebiruan */
+  background-color: var(--color-background-card);
   border: 1px solid var(--color-border-card);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
@@ -109,56 +125,55 @@ const formatStatus = (status) => {
   justify-content: space-between;
   align-items: center;
   margin-bottom: var(--spacing-sm);
-  flex-wrap: wrap; /* Untuk responsif */
+  flex-wrap: wrap;
 }
 
 .mission-title {
   font-family: var(--font-heading, var(--font-primary));
   font-size: 1.5em;
   color: var(--color-primary-accent);
-  margin: 0; /* Override default h3 margin */
-  flex-grow: 1; /* Agar judul mengambil ruang */
-  margin-right: var(--spacing-sm); /* Jarak dengan status */
+  margin: 0;
+  flex-grow: 1;
+  margin-right: var(--spacing-sm);
 }
 
-.mission-status {
+.status {
   padding: 5px 10px;
   border-radius: var(--border-radius-sm);
   font-size: 0.8em;
   font-weight: bold;
   text-transform: uppercase;
   color: var(--color-text-light);
-  white-space: nowrap; /* Mencegah status pecah baris */
+  white-space: nowrap;
 }
 
-/* Gaya status berdasarkan warnanya */
 .status-available {
-  background-color: rgba(76, 175, 80, 0.2); /* Hijau transparan */
-  border: 1px solid #4CAF50;
-  color: #4CAF50;
+  background-color: rgba(76, 175, 80, 0.2);
+  border: 1px solid #4caf50;
+  color: #4caf50;
 }
 .status-assigned {
-  background-color: rgba(15, 52, 96, 0.3); /* Biru tua transparan */
+  background-color: rgba(15, 52, 96, 0.3);
   border: 1px solid var(--color-secondary-accent);
   color: var(--color-secondary-accent);
 }
 .status-completed {
-  background-color: rgba(138, 43, 226, 0.2); /* Ungu transparan */
-  border: 1px solid #8A2BE2;
-  color: #8A2BE2;
+  background-color: rgba(138, 43, 226, 0.2);
+  border: 1px solid #8a2be2;
+  color: #8a2be2;
 }
 .status-cancelled {
-  background-color: rgba(233, 69, 96, 0.2); /* Merah muda transparan */
+  background-color: rgba(233, 69, 96, 0.2);
   border: 1px solid var(--color-primary-accent);
   color: var(--color-primary-accent);
 }
 
 .card-body {
-  flex-grow: 1; /* Pastikan body mengisi ruang yang tersisa */
+  flex-grow: 1;
   margin-bottom: var(--spacing-md);
 }
 
-.mission-description {
+.description {
   font-size: 0.95em;
   color: var(--color-text-light);
   margin-bottom: var(--spacing-md);
@@ -166,37 +181,37 @@ const formatStatus = (status) => {
 
 .mission-details {
   display: grid;
-  grid-template-columns: 1fr; /* Default 1 kolom */
+  grid-template-columns: 1fr;
   gap: var(--spacing-sm);
   font-size: 0.9em;
 }
 
 .detail-item {
   display: flex;
-  flex-wrap: wrap; /* Agar label dan value bisa wrap jika terlalu panjang */
+  flex-wrap: wrap;
   align-items: baseline;
-  gap: 5px; /* Jarak antara label dan value */
+  gap: 5px;
 }
 
 .detail-label {
   font-weight: bold;
   color: var(--color-text-muted);
-  flex-shrink: 0; /* Jangan menyusut */
+  flex-shrink: 0;
 }
 
-.info-value { /* Menggunakan info-value karena ini adalah kelas umum untuk nilai info */
+.info-value {
   color: var(--color-text-light);
-  flex-grow: 1; /* Value mengisi sisa ruang */
+  flex-grow: 1;
 }
 
 .info-value.bounty {
-  color: #4CAF50; /* Warna hijau untuk bayaran */
+  color: #4caf50;
   font-weight: bold;
   font-size: 1.1em;
 }
 
 .info-value.deadline {
-  color: var(--color-primary-accent); /* Warna aksen untuk deadline */
+  color: var(--color-primary-accent);
 }
 
 .skill-tag {
@@ -206,42 +221,38 @@ const formatStatus = (status) => {
   border-radius: var(--border-radius-sm);
   font-size: 0.75em;
   white-space: nowrap;
-  display: inline-block; /* Untuk margin antar tag */
+  display: inline-block;
   margin-right: 5px;
   margin-bottom: 5px;
 }
 
 .card-footer {
   display: flex;
-  justify-content: flex-end; /* Tombol ke kanan */
+  justify-content: flex-end;
   align-items: center;
-  flex-wrap: wrap; /* PENTING: Izinkan tombol untuk wrap ke baris baru */
+  flex-wrap: wrap;
   margin-top: var(--spacing-md);
-  gap: var(--spacing-sm); /* Jarak antar tombol */
+  gap: var(--spacing-sm);
   padding-top: var(--spacing-sm);
-  border-top: 1px solid rgba(74, 74, 110, 0.2); /* Garis pemisah opsional */
+  border-top: 1px solid rgba(74, 74, 110, 0.2);
 }
 
-/* Gaya khusus untuk TOMBOL di dalam card-footer MissionCard */
 .card-footer .base-button {
-    padding: 5px 10px; /* Perkecil padding tombol */
-    font-size: 0.85em; /* Perkecil ukuran font */
-    min-width: 100px; /* PENTING: Atur lebar minimum yang seragam (sesuaikan nilai ini) */
-    text-align: center; /* Pastikan teks di tengah */
-    justify-content: center; /* Untuk flex items, pusatkan konten */
-    box-sizing: border-box; /* Agar padding dan border tidak menambah lebar total */
+  padding: 5px 10px;
+  font-size: 0.85em;
+  min-width: 100px;
+  text-align: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
-/* Khusus untuk router-link yang juga berperan sebagai tombol di slot (misal: "Lihat Detail") */
 .card-footer .view-detail-button {
-    min-width: 100px; /* Pastikan juga router-link Lihat Detail punya min-width yang sama */
+  min-width: 100px;
 }
 
-
-/* Responsive adjustments */
 @media (min-width: 600px) {
   .mission-details {
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); /* 2 kolom pada layar lebih lebar */
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   }
 }
 
@@ -255,14 +266,13 @@ const formatStatus = (status) => {
     margin-right: 0;
   }
   .card-footer {
-    flex-direction: column; /* Tombol jadi tumpuk pada layar sangat kecil */
-    align-items: stretch; /* Tombol mengambil lebar penuh */
+    flex-direction: column;
+    align-items: stretch;
   }
-  /* Tombol ambil lebar penuh di mobile */
   .card-footer .base-button,
   .card-footer .view-detail-button {
-    min-width: unset; /* Hapus min-width di mobile */
-    width: 100%; /* Tombol ambil lebar penuh di mobile */
+    min-width: unset;
+    width: 100%;
   }
 }
 </style>

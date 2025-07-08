@@ -1,64 +1,57 @@
-/* src/assets/css/main.css */
-
-/* --- CSS Reset / Normalisasi (Opsional, tapi disarankan) --- */
+/* --- CSS Reset --- */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
 
-/* --- Variabel CSS (untuk konsistensi warna dan font) --- */
+/* --- Variabel Warna dan Tampilan --- */
 :root {
-  /* Warna */
-  --color-background-dark: #121212;
-  --color-background-card: #1A1A2E;
-  --color-primary-accent: #E94560;
-  --color-secondary-accent: #0F3460;
-  --color-text-light: #E0E0E0;
-  --color-text-muted: #CCCCCC;
-  --color-border-card: #4a4a6e;
-  --color-button-hover: #16213e;
+  --color-background-dark: #0d0d0d;
+  --color-background-card: #1b1b2f;
+  --color-primary-accent: #ff0033; /* Merah lebih tegas */
+  --color-secondary-accent: #2c2c54; /* Biru gelap */
+  --color-text-light: #f0f0f0;
+  --color-text-muted: #a8a8a8;
+  --color-border-card: #3a3a5a;
+  --color-button-hover: #3b0a26;
+  --color-shadow-accent: rgba(255, 0, 51, 0.35);
 
-  /* Font */
   --font-primary: 'Inter', sans-serif;
-  --font-heading: 'Cyberpunk', sans-serif;
+  --font-heading: 'Orbitron', sans-serif;
 
-  /* Spacing */
   --spacing-sm: 8px;
   --spacing-md: 16px;
   --spacing-lg: 24px;
   --spacing-xl: 48px;
 
-  /* Border Radius */
-  --border-radius-sm: 4px;
-  --border-radius-md: 8px;
+  --border-radius-sm: 5px;
+  --border-radius-md: 12px;
 }
 
-/* --- Global Body Styles --- */
+/* --- Global Styles --- */
 body {
   font-family: var(--font-primary);
   background-color: var(--color-background-dark);
   color: var(--color-text-light);
   line-height: 1.6;
-  overflow-x: hidden;
   min-height: 100vh;
+  overflow-x: hidden;
   display: flex;
   flex-direction: column;
 }
 
-/* Gaya untuk #app dan .main-content dipindahkan ke App.vue agar tidak duplikat */
-
-/* --- General Typography --- */
+/* --- Typography --- */
 h1, h2, h3, h4, h5, h6 {
-  font-family: var(--font-heading, var(--font-primary));
+  font-family: var(--font-heading);
   color: var(--color-primary-accent);
+  text-shadow: 0 0 10px var(--color-shadow-accent);
   margin-bottom: var(--spacing-sm);
-  text-shadow: 0 0 5px rgba(233, 69, 96, 0.5);
 }
 
 h1 { font-size: 2.8em; }
 h2 { font-size: 2.2em; }
-h3 { font-size: 1.8em; }
+h3 { font-size: 1.6em; }
 p { margin-bottom: var(--spacing-md); }
 
 a {
@@ -66,13 +59,12 @@ a {
   text-decoration: none;
   transition: color 0.3s ease;
 }
-
 a:hover {
-  color: var(--color-secondary-accent);
-  text-decoration: underline;
+  color: var(--color-text-light);
+  text-shadow: 0 0 6px var(--color-shadow-accent);
 }
 
-/* --- Base Button Styles --- */
+/* --- Buttons --- */
 button, .base-button {
   font-family: var(--font-primary);
   background-color: var(--color-primary-accent);
@@ -82,25 +74,23 @@ button, .base-button {
   border-radius: var(--border-radius-sm);
   cursor: pointer;
   font-size: 1em;
-  transition: background-color 0.3s ease, transform 0.2s ease;
+  transition: all 0.3s ease;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  box-shadow: 0 0 8px rgba(233, 69, 96, 0.3);
+  box-shadow: 0 0 10px var(--color-shadow-accent);
 }
-
 button:hover, .base-button:hover {
-  background-color: var(--color-secondary-accent);
-  transform: translateY(-2px);
-  box-shadow: 0 0 12px rgba(15, 52, 96, 0.5);
+  background-color: var(--color-button-hover);
+  transform: translateY(-2px) scale(1.02);
+  box-shadow: 0 0 15px var(--color-shadow-accent);
 }
-
 button:disabled {
-  background-color: #555;
+  background-color: #333;
   cursor: not-allowed;
   box-shadow: none;
 }
 
-/* --- Form Input Styles --- */
+/* --- Input Forms --- */
 input[type="text"],
 input[type="email"],
 input[type="password"],
@@ -109,7 +99,7 @@ select {
   width: 100%;
   padding: var(--spacing-sm);
   margin-bottom: var(--spacing-md);
-  background-color: #2a2a4a;
+  background-color: #151525;
   border: 1px solid var(--color-border-card);
   border-radius: var(--border-radius-sm);
   color: var(--color-text-light);
@@ -117,57 +107,55 @@ select {
   font-size: 1em;
   transition: border-color 0.3s ease, box-shadow 0.3s ease;
 }
-
 input:focus,
 textarea:focus,
 select:focus {
   outline: none;
   border-color: var(--color-primary-accent);
-  box-shadow: 0 0 0 2px rgba(233, 69, 96, 0.4);
+  box-shadow: 0 0 0 3px var(--color-shadow-accent);
 }
 
-/* --- Card Styles (untuk komponen MissionCard, dll.) --- */
+/* --- Cards --- */
 .card {
   background-color: var(--color-background-card);
   border: 1px solid var(--color-border-card);
   border-radius: var(--border-radius-md);
   padding: var(--spacing-md);
   margin-bottom: var(--spacing-md);
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
-  transition: transform 0.3s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.4);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
-
 .card:hover {
-  transform: translateY(-5px);
+  transform: translateY(-6px);
+  box-shadow: 0 0 20px var(--color-shadow-accent);
 }
 
-/* --- Container Umum --- */
+/* --- Container --- */
 .container {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 var(--spacing-md);
 }
 
-/* --- Message Styles (error, success) --- */
+/* --- Alerts --- */
 .error-message {
-  color: var(--color-primary-accent);
-  background-color: rgba(233, 69, 96, 0.1);
+  background-color: rgba(255, 0, 51, 0.1);
   border: 1px solid var(--color-primary-accent);
+  color: var(--color-primary-accent);
   padding: var(--spacing-sm);
   border-radius: var(--border-radius-sm);
   margin-bottom: var(--spacing-md);
 }
-
 .success-message {
-  color: #4CAF50;
-  background-color: rgba(76, 175, 80, 0.1);
-  border: 1px solid #4CAF50;
+  background-color: rgba(0, 255, 127, 0.1);
+  border: 1px solid #00cc99;
+  color: #00cc99;
   padding: var(--spacing-sm);
   border-radius: var(--border-radius-sm);
   margin-bottom: var(--spacing-md);
 }
 
-/* --- Utility Classes --- */
+/* --- Utilities --- */
 .text-center { text-align: center; }
 .margin-top-lg { margin-top: var(--spacing-lg); }
 .flex-row { display: flex; flex-direction: row; }
@@ -176,10 +164,10 @@ select:focus {
 .items-center { align-items: center; }
 .gap-md { gap: var(--spacing-md); }
 
-/* --- Responsiveness Dasar --- */
+/* --- Responsive --- */
 @media (max-width: 768px) {
   h1 { font-size: 2.2em; }
-  h2 { font-size: 1.8em; }
+  h2 { font-size: 1.7em; }
   .container {
     padding: 0 var(--spacing-sm);
   }

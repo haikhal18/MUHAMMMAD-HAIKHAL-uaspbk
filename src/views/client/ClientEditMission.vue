@@ -6,7 +6,7 @@
     </header>
 
     <LoadingSpinner v-if="missionStore.loading" text="Memuat detail misi..." />
-    
+
     <AlertMessage
       v-if="profileAlert?.isVisible"
       v-model:isVisible="profileAlert.isVisible"
@@ -17,7 +17,7 @@
       class="edit-mission-alert"
     />
 
-    <section class="edit-mission-form-section" v-if="!missionStore.loading && formData.id">
+    <section class="edit-mission-form-section" v-if="!missionStore.loading && formData.title">
       <form @submit.prevent="updateMission" class="edit-mission-form">
         <BaseInput
           id="mission-title"
@@ -57,9 +57,9 @@
           label="Keahlian yang Dibutuhkan"
           type="text"
           v-model="skillsInput"
-          placeholder="Contoh: Penetration Testing, Digital Forensics (pisahkan dengan koma)"
+          placeholder="Contoh: Penetration Testing, Digital Forensics"
           :errorMessage="errors.requiredSkills"
-          hint="Daftar keahlian spesifik yang harus dimiliki oleh Cyber Ninja pelamar."
+          hint="Pisahkan dengan koma jika lebih dari satu keahlian."
         />
 
         <BaseButton
@@ -163,7 +163,7 @@ const validateForm = () => {
     }
   }
   if (!skillsInput.value.trim()) {
-    errors.value.requiredSkills = 'Setidaknya satu keahlian dibutuhkan (pisahkan dengan koma).';
+    errors.value.requiredSkills = 'Setidaknya satu keahlian dibutuhkan.';
     isValid = false;
   } else {
     const parsedSkills = skillsInput.value
@@ -171,7 +171,7 @@ const validateForm = () => {
       .map((s) => s.trim())
       .filter((s) => s.length > 0);
     if (parsedSkills.length === 0) {
-      errors.value.requiredSkills = 'Keahlian tidak boleh kosong setelah dipisahkan koma.';
+      errors.value.requiredSkills = 'Keahlian tidak boleh kosong.';
       isValid = false;
     }
     formData.requiredSkills = parsedSkills;
@@ -181,31 +181,24 @@ const validateForm = () => {
 };
 
 const populateForm = (missionData) => {
-  formData.id = Number(missionData.id);
-  formData.clientId = Number(missionData.clientId);
-  formData.title = String(missionData.title);
-  formData.description = String(missionData.description);
-  formData.bounty = Number(missionData.bounty);
-  formData.deadline = String(missionData.deadline);
-  formData.requiredSkills = Array.isArray(missionData.requiredSkills)
-    ? missionData.requiredSkills.map(skill => String(skill).trim())
-    : [];
-  formData.status = String(missionData.status);
-  formData.applicants = Array.isArray(missionData.applicants)
-    ? missionData.applicants.map(id => Number(id))
-    : [];
-  formData.assignedNinjaId = missionData.assignedNinjaId !== null && missionData.assignedNinjaId !== undefined
-    ? Number(missionData.assignedNinjaId)
-    : null;
+  formData.id = missionData.id ?? null;
+  formData.clientId = missionData.clientId ?? null;
+  formData.title = missionData.title ?? '';
+  formData.description = missionData.description ?? '';
+  formData.bounty = missionData.bounty ?? null;
+  formData.deadline = missionData.deadline ?? '';
+  formData.requiredSkills = Array.isArray(missionData.requiredSkills) ? missionData.requiredSkills : [];
+  formData.status = missionData.status ?? '';
+  formData.applicants = Array.isArray(missionData.applicants) ? missionData.applicants : [];
+  formData.assignedNinjaId = missionData.assignedNinjaId ?? null;
 
   skillsInput.value = formData.requiredSkills.join(', ');
   errors.value = {};
 };
 
-
 const updateMission = async () => {
   if (!validateForm()) {
-    showAlert('Harap perbaiki kesalahan pada formulir.', 'error', null);
+    showAlert('Harap perbaiki kesalahan pada formulir.', 'error');
     return;
   }
 
@@ -214,7 +207,7 @@ const updateMission = async () => {
 
   const payload = {
     title: formData.title,
-    clientId: formData.clientId, 
+    clientId: formData.clientId,
     description: formData.description,
     bounty: formData.bounty,
     deadline: formData.deadline,
@@ -225,17 +218,16 @@ const updateMission = async () => {
   };
 
   try {
-    const updated = await missionStore.updateMission(Number(formData.id), payload);
+    const updated = await missionStore.updateMission(formData.id, payload);
     if (updated) {
       showAlert('Misi berhasil diperbarui!', 'success', 3000);
-      
       router.push(`/client/missions/${formData.id}`);
     } else {
-      showAlert(missionStore.error || 'Gagal memperbarui misi. Silakan coba lagi.', 'error', null);
+      showAlert(missionStore.error || 'Gagal memperbarui misi.', 'error');
     }
   } catch (err) {
     console.error('Error updating mission:', err);
-    showAlert('Terjadi kesalahan yang tidak terduga saat memperbarui misi.', 'error', null);
+    showAlert('Terjadi kesalahan tidak terduga.', 'error');
   } finally {
     isUpdating.value = false;
   }
@@ -244,14 +236,14 @@ const updateMission = async () => {
 watch(
   () => route.params.id,
   async (newId) => {
-    const parsedId = Number(newId);
-    if (!Number.isInteger(parsedId) || parsedId <= 0) {
+    console.log('🔍 ID dari route:', newId);
+    if (!newId || typeof newId !== 'string' || !/^MID-\d+$/.test(newId)) {
       missionStore.error = 'ID misi tidak valid.';
       router.push('/client/missions');
       return;
     }
 
-    await missionStore.fetchMissionById(parsedId);
+    await missionStore.fetchMissionById(newId);
 
     if (missionStore.error) {
       showAlert(missionStore.error, 'error', 5000);
@@ -266,8 +258,7 @@ watch(
       Number(currentMission.clientId) !== Number(authStore.user?.id) ||
       currentMission.status !== 'available'
     ) {
-      missionStore.error =
-        'Misi tidak ditemukan, bukan milik Anda, atau tidak dapat diedit karena statusnya.';
+      showAlert('Misi tidak ditemukan atau tidak bisa diedit.', 'error');
       router.push('/client/missions');
       return;
     }
@@ -277,12 +268,14 @@ watch(
   { immediate: true }
 );
 
+
 onMounted(() => {
   if (!authStore.isAuthenticated || !authStore.isClient || !authStore.user?.id) {
     router.push('/login');
   }
 });
 </script>
+
 
 <style scoped>
 /* Scoped styles untuk ClientEditMission.vue */

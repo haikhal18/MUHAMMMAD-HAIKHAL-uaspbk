@@ -38,7 +38,7 @@
   
   <script setup>
   import { ref, onMounted, watch } from 'vue';
-  import { useMissionStore } from '@/stores/mission'; // Impor Pinia missionStore
+  import { useMissionStore } from '@/stores/mission'; 
   import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
   import AlertMessage from '@/components/common/AlertMessage.vue';
   import MissionCard from '@/components/ui/MissionCard.vue';
@@ -46,9 +46,8 @@
   
   const missionStore = useMissionStore();
   
-  const showMissionErrorAlert = ref(false); // Untuk mengontrol visibilitas alert
-  
-  // Watcher untuk error dari missionStore
+  const showMissionErrorAlert = ref(false); 
+
   watch(() => missionStore.error, (newError) => {
     if (newError) {
       showMissionErrorAlert.value = true;
@@ -103,13 +102,13 @@
   
   /* --- Mission List Section --- */
   .mission-list-section {
-    position: relative; /* Untuk AlertMessage jika di-posisi-kan absolut */
+    position: relative;
   }
   
   .mission-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); /* Responsif, min 300px per kolom */
-    gap: var(--spacing-lg); /* Jarak antar kartu misi */
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); 
+    gap: var(--spacing-lg);
     margin-top: var(--spacing-lg);
   }
   
@@ -149,9 +148,9 @@
   
   /* Alert Message Styling */
   .mission-error-alert {
-    margin: var(--spacing-md) auto; /* Pusatkan alert */
-    max-width: 500px; /* Batasi lebar alert */
-    position: relative; /* Agar tidak mengganggu flow grid */
+    margin: var(--spacing-md) auto;
+    max-width: 500px; 
+    position: relative; 
     z-index: 10;
   }
   
@@ -164,7 +163,7 @@
       font-size: 1em;
     }
     .mission-grid {
-      grid-template-columns: 1fr; /* Kolom tunggal di mobile */
+      grid-template-columns: 1fr; 
     }
   }
   

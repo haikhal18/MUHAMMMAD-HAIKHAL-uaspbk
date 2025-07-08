@@ -1,32 +1,30 @@
-// src/router/index.js
-
 import { createRouter, createWebHistory } from 'vue-router';
-import { useAuthStore } from '@/stores/auth'; // Import Pinia authStore
+import { useAuthStore } from '@/stores/auth'; // Pinia authStore
 
-// --- Import Layout Components ---
+// --- Layouts ---
 import DefaultLayout from '@/layouts/DefaultLayout.vue';
 import ClientLayout from '@/layouts/ClientLayout.vue';
 import NinjaLayout from '@/layouts/NinjaLayout.vue';
 
-// --- Import View Components (Halaman) ---
-// Halaman Publik
+// --- Halaman Publik ---
 import Home from '@/views/Home.vue';
 import About from '@/views/About.vue';
 import Contact from '@/views/Contact.vue';
 import Login from '@/views/Login.vue';
 import Register from '@/views/Register.vue';
 import MissionsPublic from '@/views/MissionsPublic.vue';
-import NotFound from '@/views/NotFound.vue'; // Halaman 404
+import NotFound from '@/views/NotFound.vue';
+import NinjaPublicProfile from '@/views/NinjaPublicProfile.vue'; // ✅ Tambahkan ini
 
-// Halaman Klien (Client Dashboard)
+// --- Halaman Klien ---
 import ClientDashboard from '@/views/client/ClientDashboard.vue';
 import ClientMissions from '@/views/client/ClientMissions.vue';
 import ClientNewMission from '@/views/client/ClientNewMission.vue';
 import ClientMissionDetail from '@/views/client/ClientMissionDetail.vue';
-import ClientEditMission from '@/views/client/ClientEditMission.vue'; // <--- Tambah import ini
+import ClientEditMission from '@/views/client/ClientEditMission.vue';
 import ClientProfile from '@/views/client/ClientProfile.vue';
 
-// Halaman Ninja (Ninja Dashboard)
+// --- Halaman Ninja ---
 import NinjaDashboard from '@/views/ninja/NinjaDashboard.vue';
 import NinjaAvailableMissions from '@/views/ninja/NinjaAvailableMissions.vue';
 import NinjaAppliedMissions from '@/views/ninja/NinjaAppliedMissions.vue';
@@ -35,43 +33,19 @@ import NinjaCompletedMissions from '@/views/ninja/NinjaCompletedMissions.vue';
 import NinjaMissionDetail from '@/views/ninja/NinjaMissionDetail.vue';
 import NinjaProfile from '@/views/ninja/NinjaProfile.vue';
 
-// --- Definisi Rute Aplikasi ---
 const routes = [
-  // --- Rute Publik (Menggunakan DefaultLayout) ---
+  // --- Rute Publik (DefaultLayout) ---
   {
     path: '/',
-    component: DefaultLayout, // Semua child route ini akan menggunakan DefaultLayout
+    component: DefaultLayout,
     children: [
-      {
-        path: '', // Rute kosong berarti ini adalah rute default untuk '/'
-        name: 'Home',
-        component: Home,
-      },
-      {
-        path: 'missions',
-        name: 'MissionsPublic',
-        component: MissionsPublic,
-      },
-      {
-        path: 'about',
-        name: 'About',
-        component: About,
-      },
-      {
-        path: 'contact',
-        name: 'Contact',
-        component: Contact,
-      },
-      {
-        path: 'login',
-        name: 'Login',
-        component: Login,
-      },
-      {
-        path: 'register',
-        name: 'Register',
-        component: Register,
-      },
+      { path: '', name: 'Home', component: Home },
+      { path: 'missions', name: 'MissionsPublic', component: MissionsPublic },
+      { path: 'about', name: 'About', component: About },
+      { path: 'contact', name: 'Contact', component: Contact },
+      { path: 'login', name: 'Login', component: Login },
+      { path: 'register', name: 'Register', component: Register },
+      { path: 'ninja-profile/:id', name: 'NinjaPublicProfile', component: NinjaPublicProfile }, 
     ],
   },
 

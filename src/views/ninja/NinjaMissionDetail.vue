@@ -162,29 +162,30 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, watch } from 'vue';
+import { ref, computed, onMounted, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
 import { useMissionStore } from '@/stores/mission';
+import axios from 'axios';
+
 import LoadingSpinner from '@/components/ui/LoadingSpinner.vue';
 import AlertMessage from '@/components/common/AlertMessage.vue';
 import BaseButton from '@/components/common/BaseButton.vue';
 import BaseInput from '@/components/common/BaseInput.vue';
 import ModalDialog from '@/components/ui/ModalDialog.vue';
-import axios from 'axios';
-import { nextTick } from 'vue';
 
 const route = useRoute();
 const router = useRouter();
 const authStore = useAuthStore();
 const missionStore = useMissionStore();
 
-const missionId = parseInt(route.params.id);
+const missionId = String(route.params.id); // ✅ Jangan parseInt, pastikan string
 
 const showErrorAlert = ref(false);
 const allUsers = ref([]);
 const loadingUsers = ref(false);
 
+// Modal
 const showApplyConfirmModal = ref(false);
 const missionToApply = ref({ id: null, title: '' });
 const isApplying = ref(false);
@@ -198,198 +199,164 @@ const progressNote = ref('');
 const progressPercentage = ref(0);
 const isUpdatingProgress = ref(false);
 
-
 const mission = computed(() => missionStore.currentMission);
 
-// --- Fungsi untuk mendapatkan nama pengguna berdasarkan ID (baik ninja maupun klien) ---
+// ✅ Fungsi untuk ambil nama user
 const getUserNameById = (id, fallbackText = 'Unknown User') => {
-  if (!id) return fallbackText;
-  // PERBAIKAN: Menggunakan Number() untuk memastikan perbandingan tipe data yang sama
-  const user = allUsers.value.find(u => Number(u.id) === Number(id)); 
+  const user = allUsers.value.find(u => String(u.id) === String(id));
   return user ? user.username : fallbackText;
 };
 
-// --- Mengecek apakah ninja saat ini sudah melamar misi tertentu ---
-const hasApplied = (id) => {
-  // PERBAIKAN: Menggunakan Number() untuk memastikan perbandingan tipe data yang sama
-  return mission.value && mission.value.applicants.map(Number).includes(Number(authStore.user?.id)); 
+// ✅ Cek apakah user sudah melamar
+const hasApplied = () => {
+  if (!mission.value || !authStore.user) return false;
+  return mission.value.applicants.map(String).includes(String(authStore.user.id));
 };
 
-// --- Fungsi untuk mengambil semua user (untuk nama klien/ninja) ---
 const fetchAllUsers = async () => {
-  // Hanya fetch jika data user belum ada untuk efisiensi
   if (allUsers.value.length > 0) return;
-
   loadingUsers.value = true;
   try {
-    const response = await axios.get('http://localhost:3000/users');
-    allUsers.value = response.data;
+    const res = await axios.get('http://localhost:3000/users');
+    allUsers.value = res.data;
   } catch (err) {
-    console.error('Error fetching all users:', err);
-    missionStore.error = 'Gagal memuat data pengguna (klien/ninja) terkait misi.';
+    console.error('Gagal mengambil data user:', err);
+    missionStore.error = 'Gagal memuat data pengguna.';
   } finally {
     loadingUsers.value = false;
   }
 };
 
-// --- Fungsi untuk mengambil misi dan memvalidasi akses pengguna ---
 const fetchMissionAndValidateUser = async (id) => {
   if (!authStore.isAuthenticated || !authStore.isNinja || !authStore.user?.id) {
     router.push('/login');
     return;
   }
 
-  await missionStore.fetchMissionById(id);
+  await missionStore.fetchMissionById(String(id));
 
   if (mission.value) {
-    // Validasi tambahan jika misi hanya bisa dilihat oleh ninja yang melamar/ditugaskan
-    // PERBAIKAN: Menggunakan Number() untuk memastikan perbandingan tipe data yang sama
-    const isAssignedToMe = Number(mission.value.assignedNinjaId) === Number(authStore.user.id);
-    const hasMeAsApplicant = mission.value.applicants.map(Number).includes(Number(authStore.user.id));
-    const isPubliclyAvailable = mission.value.status === 'available';
+    const assignedToMe = String(mission.value.assignedNinjaId) === String(authStore.user.id);
+    const hasMeAsApplicant = mission.value.applicants.map(String).includes(String(authStore.user.id));
+    const isPublic = mission.value.status === 'available';
 
-    // Ninja hanya bisa melihat detail misi jika:
-    // 1. Misi berstatus 'available' (termasuk yang dia lamar)
-    // 2. Misi ditugaskan kepadanya
-    // 3. (Opsional: Tambahkan kondisi lain jika ada misi yang dibatalkan tapi dia pernah terlibat)
-    if (!isAssignedToMe && !hasMeAsApplicant && !isPubliclyAvailable) {
-      missionStore.error = 'Anda tidak memiliki akses untuk melihat detail misi ini.';
+    if (!assignedToMe && !hasMeAsApplicant && !isPublic) {
+      missionStore.error = 'Anda tidak memiliki akses untuk misi ini.';
       showErrorAlert.value = true;
-      router.push('/ninja/dashboard'); // Redirect ke dashboard ninja
+      router.push('/ninja/dashboard');
     }
 
-    // Pastikan data user (klien untuk nama klien) ada
-    if (mission.value.clientId) {
-      await fetchAllUsers();
-    }
+    await fetchAllUsers();
   }
 };
 
-// --- Watcher dan Lifecycle Hooks ---
-watch(() => missionStore.error, (newError) => {
-  if (newError) {
+watch(
+  () => route.params.id,
+  (newId) => {
+    if (newId && newId !== missionStore.currentMission?.id) {
+      fetchMissionAndValidateUser(newId);
+    }
+  },
+  { immediate: true }
+);
+
+watch(() => missionStore.error, (err) => {
+  if (err) {
     showErrorAlert.value = true;
-    nextTick(() => {
-      setTimeout(() => showErrorAlert.value = false, 5000);
-    });
-  } else {
-    showErrorAlert.value = false;
+    nextTick(() => setTimeout(() => showErrorAlert.value = false, 5000));
   }
 });
 
-watch(() => route.params.id, (newId) => {
-  const parsedId = parseInt(newId, 10);
-  if (parsedId && parsedId !== missionStore.currentMission?.id) {
-    fetchMissionAndValidateUser(parsedId);
-  }
-}, { immediate: true });
-
-onMounted(async () => {
-  // `fetchMissionAndValidateUser(missionId)` akan dipanggil oleh watcher `immediate: true`
-  // Jadi, tidak perlu memanggilnya lagi di sini.
-});
-
-
-// --- Fungsi Aksi Ninja pada Misi ---
+// ✅ Fungsi Apply
 const confirmApply = (id, title) => {
-  missionToApply.value = { id, title };
+  missionToApply.value = { id: String(id), title };
   showApplyConfirmModal.value = true;
 };
+
 const cancelApply = () => {
   showApplyConfirmModal.value = false;
   missionToApply.value = { id: null, title: '' };
 };
+
 const executeApply = async () => {
   isApplying.value = true;
   try {
-    // Pastikan ID misi dan ninja yang dikirim ke store adalah Number
     const success = await missionStore.applyForMission(
-      Number(missionToApply.value.id),
-      Number(authStore.user.id)
+      String(missionToApply.value.id),
+      String(authStore.user.id)
     );
     if (success) {
-      alert(`Berhasil melamar misi "${missionToApply.value.title}"!`);
-      // Refresh detail misi untuk update status di UI (misalnya, tombol "Lamar" jadi "Sudah Dilamar")
-      await missionStore.fetchMissionById(Number(missionToApply.value.id)); 
+      alert(`Berhasil melamar misi "${missionToApply.value.title}".`);
+      await missionStore.fetchMissionById(String(missionToApply.value.id));
     } else {
-      alert('Gagal melamar misi. Coba lagi.'); // Alert jika ada error
+      alert('Gagal melamar misi.');
     }
-  } catch (error) {
-    console.error('Error during apply execution:', error);
-    alert('Terjadi kesalahan saat melamar misi.');
+  } catch (err) {
+    console.error('Error apply:', err);
+    alert('Terjadi kesalahan.');
   } finally {
     isApplying.value = false;
     showApplyConfirmModal.value = false;
-    missionToApply.value = { id: null, title: '' };
   }
 };
 
+// ✅ Fungsi Tandai Selesai
 const confirmCompleteMission = (id, title) => {
-  missionToUpdateStatus.value = { id, title };
+  missionToUpdateStatus.value = { id: String(id), title };
   showCompleteConfirmModal.value = true;
 };
+
 const cancelStatusUpdate = () => {
   showCompleteConfirmModal.value = false;
-  missionToUpdateStatus.value = { id: null, title: '' };
 };
+
 const executeCompleteMission = async () => {
   isUpdatingStatus.value = true;
   try {
-    // Pastikan ID misi yang dikirim ke store adalah Number
-    const success = await missionStore.updateMissionStatus(Number(missionToUpdateStatus.value.id), 'completed');
+    const success = await missionStore.updateMissionStatus(
+      String(missionToUpdateStatus.value.id),
+      'completed'
+    );
     if (success) {
-      alert(`Misi "${missionToUpdateStatus.value.title}" ditandai selesai! Menunggu verifikasi Klien.`);
-      // Refresh detail misi untuk update status di UI
-      await missionStore.fetchMissionById(Number(missionToUpdateStatus.value.id)); 
-    } else {
-      alert('Gagal menandai misi selesai. Coba lagi.');
+      alert('Misi selesai ditandai.');
+      await missionStore.fetchMissionById(String(missionToUpdateStatus.value.id));
     }
-  } catch (error) {
-    console.error('Error completing mission:', error);
-    alert('Terjadi kesalahan saat menandai misi selesai.');
+  } catch (err) {
+    console.error('Error update status:', err);
   } finally {
     isUpdatingStatus.value = false;
     showCompleteConfirmModal.value = false;
   }
 };
 
+// ✅ Simpan Progres (simulasi)
 const saveProgress = async () => {
-    isUpdatingProgress.value = true;
-    try {
-        // Ini adalah contoh, Anda mungkin perlu menambahkan field `progressNote` dan `progressPercentage`
-        // ke objek misi di db.json untuk bisa disimpan.
-        // Anda bisa memanggil missionStore.updateMission di sini jika ada model data progres.
-        console.log('Saving progress:', progressNote.value, progressPercentage.value);
-        await new Promise(resolve => setTimeout(resolve, 1000)); // Simulasi API
-        alert('Progres berhasil disimpan!');
-    } catch (error) {
-        console.error('Error saving progress:', error);
-        alert('Gagal menyimpan progres. Coba lagi.');
-    } finally {
-        isUpdatingProgress.value = false;
-        showProgressUpdateModal.value = false;
-        progressNote.value = '';
-        progressPercentage.value = 0;
-    }
+  isUpdatingProgress.value = true;
+  try {
+    await new Promise(resolve => setTimeout(resolve, 1000));
+    alert('Progres disimpan.');
+  } catch (err) {
+    console.error('Gagal simpan progres:', err);
+  } finally {
+    isUpdatingProgress.value = false;
+    showProgressUpdateModal.value = false;
+    progressNote.value = '';
+    progressPercentage.value = 0;
+  }
 };
 
-const viewNinjaProfile = (ninjaId) => {
-  alert(`Fitur Lihat Profil Ninja ${ninjaId} belum diimplementasikan.`);
-};
-
-// --- Fungsi Utility ---
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const options = { year: 'numeric', month: 'long', day: 'numeric' };
-  return new Date(dateString).toLocaleDateString('id-ID', options);
+// Format helper
+const formatDate = (dateStr) => {
+  if (!dateStr) return 'N/A';
+  return new Date(dateStr).toLocaleDateString('id-ID', { year: 'numeric', month: 'long', day: 'numeric' });
 };
 
 const formatStatus = (status) => {
   const statusMap = {
     available: 'Tersedia',
-    assigned: 'Ditugaskan (Aktif)',
+    assigned: 'Ditugaskan',
     completed: 'Selesai',
-    cancelled: 'Dibatalkan',
+    cancelled: 'Dibatalkan'
   };
   return statusMap[status] || status;
 };

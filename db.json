@@ -1,76 +1,124 @@
 {
-    "users": [
-      {
-        "id": "1",
-        "username": "client_alpha",
-        "email": "alpha.corp@stealthops.com",
-        "password": "password123",
-        "role": "client",
-        "company": "Alpha Cyber Corp"
-      },
-      {
-        "id": "2",
-        "username": "ninja_shadow",
-        "email": "shadow.strike@stealthops.com",
-        "password": "password123",
-        "role": "ninja",
-        "skills": ["Penetration Testing", "Digital Forensics"],
-        "rating": 4.8
-      },
-      {
-        "id": "3",
-        "username": "client_beta",
-        "email": "beta.labs@stealthops.com",
-        "password": "password123",
-        "role": "client",
-        "company": "Beta Research Labs"
-      },
-      {
-        "id": "4",
-        "username": "ninja_ghost",
-        "email": "ghost.recon@stealthops.com",
-        "password": "123456",
-        "role": "ninja",
-        "skills": ["Cryptography", "Malware Analysis"],
-        "rating": 4.5
-      }
-    ],
-    "missions": [
-      {
-        "id": "101",
-        "clientId": "1",
-        "title": "Audit Keamanan Jaringan",
-        "description": "Diperlukan audit keamanan untuk infrastruktur jaringan.",
-        "bounty": 7500,
-        "deadline": "2025-08-30",
-        "requiredSkills": ["Network Security"],
-        "status": "available",
-        "applicants": ["2", "4"],
-        "assignedNinjaId": null
-      },
-      {
-        "id": "102",
-        "clientId": "1",
-        "title": "Pemulihan Data Terenkripsi",
-        "description": "Memulihkan data krusial dari hard drive yang rusak.",
-        "bounty": 5000,
-        "deadline": "2025-07-25",
-        "requiredSkills": ["Digital Forensics", "Cryptography"],
-        "status": "assigned",
-        "applicants": ["2", "4"],
-        "assignedNinjaId": "2"
-      },
-      {
-        "id": "103",
-        "clientId": "3",
-        "title": "Analisis OSINT Kompetitor",
-        "description": "Mengumpulkan intelijen dari sumber terbuka terkait kampanye kompetitor.",
-        "bounty": 1800,
-        "deadline": "2025-07-10",
-        "requiredSkills": ["OSINT"],
-        "status": "completed",
-        "applicants": ["4"],
-        "assignedNinjaId": "4"
-      }
-    ]
-  }
+  "users": [
+    {
+      "id": "1",
+      "username": "client_one",
+      "email": "client1@mail.com",
+      "password": "123456",
+      "role": "client",
+      "company": "CyberSafe Corp"
+    },
+    {
+      "id": "2",
+      "username": "client_two",
+      "email": "client2@mail.com",
+      "password": "123456",
+      "role": "client",
+      "company": "SecureTech Ltd"
+    },
+    {
+      "id": "3",
+      "username": "client_three",
+      "email": "client3@mail.com",
+      "password": "123456",
+      "role": "client",
+      "company": "ShieldData Inc"
+    },
+    {
+      "id": "4",
+      "username": "ninja_blade",
+      "email": "blade@ninja.com",
+      "password": "123456",
+      "role": "ninja",
+      "skills": [
+        "Penetration Testing",
+        "Exploit Development"
+      ],
+      "rating": 4.9
+    },
+    {
+      "id": "5",
+      "username": "ninja_shadow",
+      "email": "shadow@ninja.com",
+      "password": "123456",
+      "role": "ninja",
+      "skills": [
+        "Cryptography",
+        "Reverse Engineering"
+      ],
+      "rating": 4.7
+    },
+    {
+      "id": "6",
+      "username": "ninja_ghost",
+      "email": "ghost@ninja.com",
+      "password": "123456",
+      "role": "ninja",
+      "skills": [
+        "Digital Forensics",
+        "Network Security"
+      ],
+      "rating": 4.8
+    },
+    {
+      "id": "878",
+      "username": "000",
+      "email": "0@gmail.com",
+      "password": "000000",
+      "role": "client",
+      "company": "00"
+    }
+  ],
+  "missions": [
+    {
+      "id": "101",
+      "clientId": "1",
+      "title": "Uji Penetrasi Sistem E-Commerce",
+      "description": "Lakukan pengujian keamanan pada situs e-commerce kami.",
+      "bounty": 5000,
+      "deadline": "2025-07-30",
+      "requiredSkills": [
+        "Penetration Testing"
+      ],
+      "status": "available",
+      "applicants": [
+        4,
+        5
+      ],
+      "assignedNinjaId": null
+    },
+    {
+      "id": "102",
+      "clientId": "2",
+      "title": "Analisis Forensik Insiden",
+      "description": "Investigasi kebocoran data yang terjadi minggu lalu.",
+      "bounty": 6500,
+      "deadline": "2025-08-10",
+      "requiredSkills": [
+        "Digital Forensics"
+      ],
+      "status": "assigned",
+      "applicants": [
+        6
+      ],
+      "assignedNinjaId": 6
+    },
+    {
+      "id": "103",
+      "clientId": "3",
+      "title": "Audit Keamanan Jaringan",
+      "description": "Audit jaringan internal untuk deteksi potensi celah.",
+      "bounty": 4800,
+      "deadline": "2025-07-20",
+      "requiredSkills": [
+        "Network Security"
+      ],
+      "status": "completed",
+      "applicants": [
+        5,
+        6
+      ],
+      "assignedNinjaId": 5
+    }
+  ]
+}

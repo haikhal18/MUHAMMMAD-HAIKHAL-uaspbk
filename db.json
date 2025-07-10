@@ -67,6 +67,47 @@
       "password": "000000",
       "role": "client",
       "company": "00"
+    },
+    {
+      "id": "88",
+      "username": "client7",
+      "email": "client@stop.com",
+      "password": "999999",
+      "role": "client",
+      "company": "888"
+    },
+    {
+      "id": "99",
+      "username": "99",
+      "email": "9@gmail.com",
+      "password": 999999,
+      "role": "ninja"
+    },
+    {
+      "id": "88",
+      "username": "88",
+      "email": "8@gmail.com",
+      "password": "888888",
+      "role": "client"
+    },
+    {
+      "id": "111",
+      "username": "111",
+      "email": "12@saa.com",
+      "password": "222222",
+      "role": "client",
+      "company": "asjah"
+    },
+    {
+      "id": "232",
+      "username": "232",
+      "email": "232@sas.com",
+      "password": "222222",
+      "role": "ninja",
+      "skills": [
+        "kndknd",
+        "asushuas"
+      ]
     }
   ],
   "missions": [
@@ -119,6 +160,85 @@
         6
       ],
       "assignedNinjaId": 5
+    },
+    {
+      "id": "MID-999",
+      "clientId": 88,
+      "title": "keamanan data",
+      "description": "data saya ",
+      "bounty": 100,
+      "deadline": "2025-07-11",
+      "requiredSkills": [
+        "penetration"
+      ],
+      "status": "available",
+      "applicants": [
+        99
+      ],
+      "assignedNinjaId": null
+    },
+    {
+      "id": "MID-009",
+      "clientId": 88,
+      "title": "xsdsd",
+      "description": "fsef",
+      "bounty": 60,
+      "deadline": "2025-07-11",
+      "requiredSkills": [
+        "dsfdsf"
+      ],
+      "status": "available",
+      "applicants": [
+        99
+      ],
+      "assignedNinjaId": null
+    },
+    {
+      "id": "MID-339",
+      "clientId": 88,
+      "title": "azds",
+      "description": "wdsqw",
+      "bounty": 70,
+      "deadline": "2025-07-18",
+      "requiredSkills": [
+        "adssd"
+      ],
+      "status": "available",
+      "applicants": [
+        99,
+        232
+      ],
+      "assignedNinjaId": null
+    },
+    {
+      "id": "MID-232",
+      "clientId": 111,
+      "title": "23232",
+      "description": "njnj",
+      "bounty": 98,
+      "deadline": "2025-07-18",
+      "requiredSkills": [
+        "kji"
+      ],
+      "status": "completed",
+      "applicants": [
+        232
+      ],
+      "assignedNinjaId": 232
+    },
+    {
+      "id": "MID-332",
+      "clientId": "111",
+      "title": "qwqw",
+      "description": "wdsqw",
+      "bounty": 70,
+      "deadline": "2025-07-18",
+      "requiredSkills": [
+        "adssd"
+      ],
+      "status": "available",
+      "applicants": [],
+      "assignedNinjaId": null
     }
   ]
 }
